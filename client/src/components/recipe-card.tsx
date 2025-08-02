@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { CookingLogModal } from "./cooking-log-modal";
 import type { Recipe } from "@shared/schema";
 
 interface RecipeCardProps {
@@ -10,6 +11,7 @@ interface RecipeCardProps {
 
 export function RecipeCard({ recipe }: RecipeCardProps) {
   const [showCookingLog, setShowCookingLog] = useState(false);
+  const [showLogModal, setShowLogModal] = useState(false);
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
@@ -33,55 +35,9 @@ export function RecipeCard({ recipe }: RecipeCardProps) {
     },
   });
 
-  const logCookingMutation = useMutation({
-    mutationFn: async ({ id, notes, rating }: { id: string; notes: string; rating: number }) => {
-      const response = await apiRequest("POST", `/api/recipes/${id}/cooking-log`, {
-        date: new Date().toISOString().split('T')[0],
-        notes,
-        rating,
-      });
-      return response.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/recipes"] });
-      toast({
-        title: "Cooking session logged",
-        description: "Your cooking experience has been recorded and rating updated!",
-      });
-    },
-    onError: () => {
-      toast({
-        title: "Error",
-        description: "Failed to log cooking session. Please try again.",
-        variant: "destructive",
-      });
-    },
-  });
-
   const handleDelete = () => {
     if (confirm("Are you sure you want to delete this recipe?")) {
       deleteMutation.mutate(recipe.id);
-    }
-  };
-
-  const handleLogCooking = () => {
-    const notes = prompt("How did it turn out? Add any notes:");
-    if (notes !== null) {
-      const ratingStr = prompt("How would you rate this cooking session? (1-5 stars):");
-      const rating = parseInt(ratingStr || "0");
-      if (rating >= 1 && rating <= 5) {
-        logCookingMutation.mutate({ 
-          id: recipe.id, 
-          notes: notes || "Cooked this recipe",
-          rating 
-        });
-      } else {
-        toast({
-          title: "Invalid rating",
-          description: "Please enter a rating between 1 and 5 stars.",
-          variant: "destructive",
-        });
-      }
     }
   };
 
@@ -125,17 +81,20 @@ export function RecipeCard({ recipe }: RecipeCardProps) {
       <div className="mb-4">
         <strong>Instructions:</strong>
         <div className="mt-2 text-gray-600">
-          {recipe.instructions}
+          {recipe.instructions.split('\n').map((step, index) => (
+            <div key={index} className="mb-2">
+              <span className="font-medium text-green-700">{index + 1}.</span> {step}
+            </div>
+          ))}
         </div>
       </div>
       
       <div className="flex justify-between items-center mt-5 gap-3">
         <button 
           className="recipe-btn"
-          onClick={handleLogCooking}
-          disabled={logCookingMutation.isPending}
+          onClick={() => setShowLogModal(true)}
         >
-          {logCookingMutation.isPending ? "Logging..." : "Log Cooking Session"}
+          Log Cooking Session
         </button>
         <button 
           className="delete-btn"
@@ -178,6 +137,13 @@ export function RecipeCard({ recipe }: RecipeCardProps) {
           ))}
         </div>
       )}
+
+      <CookingLogModal
+        isOpen={showLogModal}
+        onClose={() => setShowLogModal(false)}
+        recipeId={recipe.id}
+        recipeName={recipe.name}
+      />
     </div>
   );
 }
