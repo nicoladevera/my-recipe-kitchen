@@ -8,6 +8,14 @@ This is a full-stack Recipe Manager application built with React, Express, and P
 
 Preferred communication style: Simple, everyday language.
 
+## Recent Changes (August 2025)
+
+- **Recipe Creation Fixed**: Resolved form validation issues by implementing proper server-side parsing of numeric fields (cookTime, servings) from FormData strings
+- **Cooking Log Modal**: Replaced simple prompts with professional modal interface featuring star ratings, notes, and photo uploads that replace recipe photos
+- **Smart Recipe Sorting**: Implemented timestamp-based sorting where recipes with recent cooking activity appear at top, with precise time-based ordering for same-day logs
+- **Instructions Display**: Updated to show clean step-by-step format without automatic numbering, with improved placeholder text guidance
+- **Timestamp Precision**: Enhanced cooking logs to store full ISO timestamps instead of just dates for accurate same-day sorting
+
 ## System Architecture
 
 ### Frontend Architecture
