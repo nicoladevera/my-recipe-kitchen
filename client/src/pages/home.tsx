@@ -1,0 +1,98 @@
+import { useState } from "react";
+import { RecipeCard } from "@/components/recipe-card";
+import { AddRecipeForm } from "@/components/add-recipe-form";
+import { RecipeFilters } from "@/components/recipe-filters";
+import { useRecipes } from "@/hooks/use-recipes";
+
+export default function Home() {
+  const [activeSection, setActiveSection] = useState<"my-recipes" | "add-recipe">("my-recipes");
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filterRating, setFilterRating] = useState("");
+  const [filterTime, setFilterTime] = useState("");
+
+  const { data: recipes = [], isLoading } = useRecipes();
+
+  const filteredRecipes = recipes.filter(recipe => {
+    const matchesSearch = !searchTerm || 
+      recipe.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      recipe.heroIngredient.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      recipe.ingredients.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    const matchesRating = !filterRating || (recipe.rating || 0) >= parseInt(filterRating);
+    const matchesTime = !filterTime || recipe.cookTime <= parseInt(filterTime);
+
+    return matchesSearch && matchesRating && matchesTime;
+  });
+
+  return (
+    <div className="min-h-screen">
+      <div className="recipe-header">
+        <div className="recipe-container">
+          <h1>🌿 My Recipe Kitchen</h1>
+          <p>A thoughtful collection of your favorite recipes, beautifully organized</p>
+        </div>
+      </div>
+
+      <div className="recipe-container">
+        <div className="recipe-nav">
+          <button
+            className={`recipe-nav-btn ${activeSection === "my-recipes" ? "active" : ""}`}
+            onClick={() => setActiveSection("my-recipes")}
+          >
+            My Recipes
+          </button>
+          <button
+            className={`recipe-nav-btn ${activeSection === "add-recipe" ? "active" : ""}`}
+            onClick={() => setActiveSection("add-recipe")}
+          >
+            Add Recipe
+          </button>
+        </div>
+
+        {activeSection === "my-recipes" ? (
+          <div className="recipe-section">
+            <h2>My Recipe Collection</h2>
+            
+            <RecipeFilters
+              searchTerm={searchTerm}
+              setSearchTerm={setSearchTerm}
+              filterRating={filterRating}
+              setFilterRating={setFilterRating}
+              filterTime={filterTime}
+              setFilterTime={setFilterTime}
+            />
+
+            {isLoading ? (
+              <div className="text-center py-8">
+                <p>Loading recipes...</p>
+              </div>
+            ) : filteredRecipes.length === 0 ? (
+              <div className="text-center py-12">
+                <p className="text-lg text-gray-600 mb-4">
+                  {recipes.length === 0 
+                    ? "No recipes found. Add your first recipe to get started!"
+                    : "No recipes match your current filters."
+                  }
+                </p>
+                {recipes.length > 0 && (
+                  <p className="text-gray-500">Try adjusting your filters or search terms.</p>
+                )}
+              </div>
+            ) : (
+              <div>
+                {filteredRecipes.map(recipe => (
+                  <RecipeCard key={recipe.id} recipe={recipe} />
+                ))}
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="recipe-section">
+            <h2>Add New Recipe</h2>
+            <AddRecipeForm onSuccess={() => setActiveSection("my-recipes")} />
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
