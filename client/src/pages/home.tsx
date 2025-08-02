@@ -34,7 +34,7 @@ export default function Home() {
       return bRecentLog - aRecentLog;
     }
     
-    // If only one has cooking logs, prioritize the one with logs
+    // Prioritize recipes with cooking logs over those without
     if (aHasLogs && !bHasLogs) return -1;
     if (!aHasLogs && bHasLogs) return 1;
     

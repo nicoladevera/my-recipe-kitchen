@@ -83,7 +83,7 @@ export function RecipeCard({ recipe }: RecipeCardProps) {
         <div className="mt-2 text-gray-600">
           {recipe.instructions.split('\n').filter(step => step.trim()).map((step, index) => (
             <div key={index} className="mb-2">
-              <span className="font-medium text-green-700">{index + 1}.</span> {step.trim()}
+              {step.trim()}
             </div>
           ))}
         </div>
