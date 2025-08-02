@@ -428,6 +428,17 @@
     font-weight: 500;
   }
 
+  .recipe-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .mobile-delete {
+    display: none;
+  }
+
   @media (max-width: 768px) {
     .recipe-container {
       padding: 0 16px;
@@ -495,6 +506,22 @@
     }
 
     .recipe-btn {
+      width: 100%;
+    }
+
+    .recipe-actions {
+      flex-direction: column;
+      align-items: stretch;
+      gap: 0;
+    }
+
+    .desktop-delete {
+      display: none;
+    }
+
+    .mobile-delete {
+      display: block;
+      margin-top: 16px;
       width: 100%;
     }
   }

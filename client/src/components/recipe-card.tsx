@@ -89,7 +89,7 @@ export function RecipeCard({ recipe }: RecipeCardProps) {
         </div>
       </div>
       
-      <div className="flex justify-between items-center mt-5 gap-3">
+      <div className="recipe-actions mt-5">
         <button 
           className="recipe-btn"
           onClick={() => setShowLogModal(true)}
@@ -97,7 +97,7 @@ export function RecipeCard({ recipe }: RecipeCardProps) {
           Log Cooking Session
         </button>
         <button 
-          className="delete-btn"
+          className="delete-btn desktop-delete"
           onClick={handleDelete}
           disabled={deleteMutation.isPending}
         >
@@ -137,6 +137,14 @@ export function RecipeCard({ recipe }: RecipeCardProps) {
           ))}
         </div>
       )}
+
+      <button 
+        className="delete-btn mobile-delete"
+        onClick={handleDelete}
+        disabled={deleteMutation.isPending}
+      >
+        {deleteMutation.isPending ? "Deleting..." : "🗑️ Delete"}
+      </button>
 
       <CookingLogModal
         isOpen={showLogModal}
