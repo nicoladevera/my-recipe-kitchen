@@ -32,8 +32,8 @@ export class MemStorage implements IStorage {
         rating: 5,
         photo: "https://images.unsplash.com/photo-1551892374-ecf8754cf8b0?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&h=300",
         cookingLog: [
-          { date: "2024-01-15", notes: "Perfect for summer dinner!" },
-          { date: "2024-01-08", notes: "Added extra olives" }
+          { date: "2024-01-15", notes: "Perfect for summer dinner!", rating: 5 },
+          { date: "2024-01-08", notes: "Added extra olives", rating: 5 }
         ],
         createdAt: new Date("2024-01-01"),
       },
@@ -48,7 +48,7 @@ export class MemStorage implements IStorage {
         rating: 4,
         photo: "https://images.unsplash.com/photo-1598103442097-8b74394b95c6?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&h=300",
         cookingLog: [
-          { date: "2024-01-12", notes: "Juicy and flavorful!" }
+          { date: "2024-01-12", notes: "Juicy and flavorful!", rating: 4 }
         ],
         createdAt: new Date("2024-01-02"),
       },
@@ -87,7 +87,7 @@ export class MemStorage implements IStorage {
     const recipe: Recipe = {
       ...insertRecipe,
       id,
-      rating: insertRecipe.rating || 0,
+      rating: 0, // Start with 0 rating
       photo: insertRecipe.photo || null,
       cookingLog: [],
       createdAt: new Date(),
@@ -119,7 +119,16 @@ export class MemStorage implements IStorage {
 
     const currentLog = recipe.cookingLog || [];
     const updatedLog = [logEntry, ...currentLog];
-    const updated: Recipe = { ...recipe, cookingLog: updatedLog };
+    
+    // Calculate new average rating from all cooking log entries
+    const totalRatings = updatedLog.reduce((sum, entry) => sum + entry.rating, 0);
+    const averageRating = Math.round(totalRatings / updatedLog.length);
+    
+    const updated: Recipe = { 
+      ...recipe, 
+      cookingLog: updatedLog,
+      rating: averageRating
+    };
     this.recipes.set(id, updated);
     return updated;
   }

@@ -34,10 +34,11 @@ export function RecipeCard({ recipe }: RecipeCardProps) {
   });
 
   const logCookingMutation = useMutation({
-    mutationFn: async ({ id, notes }: { id: string; notes: string }) => {
+    mutationFn: async ({ id, notes, rating }: { id: string; notes: string; rating: number }) => {
       const response = await apiRequest("POST", `/api/recipes/${id}/cooking-log`, {
         date: new Date().toISOString().split('T')[0],
         notes,
+        rating,
       });
       return response.json();
     },
@@ -45,7 +46,7 @@ export function RecipeCard({ recipe }: RecipeCardProps) {
       queryClient.invalidateQueries({ queryKey: ["/api/recipes"] });
       toast({
         title: "Cooking session logged",
-        description: "Your cooking experience has been recorded!",
+        description: "Your cooking experience has been recorded and rating updated!",
       });
     },
     onError: () => {
@@ -66,7 +67,21 @@ export function RecipeCard({ recipe }: RecipeCardProps) {
   const handleLogCooking = () => {
     const notes = prompt("How did it turn out? Add any notes:");
     if (notes !== null) {
-      logCookingMutation.mutate({ id: recipe.id, notes: notes || "Cooked this recipe" });
+      const ratingStr = prompt("How would you rate this cooking session? (1-5 stars):");
+      const rating = parseInt(ratingStr || "0");
+      if (rating >= 1 && rating <= 5) {
+        logCookingMutation.mutate({ 
+          id: recipe.id, 
+          notes: notes || "Cooked this recipe",
+          rating 
+        });
+      } else {
+        toast({
+          title: "Invalid rating",
+          description: "Please enter a rating between 1 and 5 stars.",
+          variant: "destructive",
+        });
+      }
     }
   };
 
@@ -102,9 +117,15 @@ export function RecipeCard({ recipe }: RecipeCardProps) {
       
       <div className="mb-4">
         <strong>Ingredients:</strong>
+        <div className="mt-2 text-gray-600 whitespace-pre-line">
+          {recipe.ingredients}
+        </div>
+      </div>
+      
+      <div className="mb-4">
+        <strong>Instructions:</strong>
         <div className="mt-2 text-gray-600">
-          {recipe.ingredients.split('\n').slice(0, 3).join(', ')}
-          {recipe.ingredients.split('\n').length > 3 && '...'}
+          {recipe.instructions}
         </div>
       </div>
       
@@ -138,7 +159,20 @@ export function RecipeCard({ recipe }: RecipeCardProps) {
           </div>
           {showCookingLog && recipe.cookingLog?.map((log, index) => (
             <div key={index} className="flex justify-between items-center py-2 border-b border-gray-200 last:border-b-0">
-              <span>{log.date}</span>
+              <div>
+                <span>{log.date}</span>
+                <div className="recipe-rating mt-1">
+                  {Array.from({ length: 5 }, (_, i) => (
+                    <span
+                      key={i}
+                      className={`recipe-star non-interactive ${i < log.rating ? 'filled' : ''}`}
+                      style={{ fontSize: '0.9em' }}
+                    >
+                      ★
+                    </span>
+                  ))}
+                </div>
+              </div>
               <span className="text-gray-600">{log.notes}</span>
             </div>
           ))}

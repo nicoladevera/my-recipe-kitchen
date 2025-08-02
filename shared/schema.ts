@@ -20,15 +20,22 @@ export const recipes = pgTable("recipes", {
 export interface CookingLogEntry {
   date: string;
   notes: string;
+  rating: number;
 }
+
+export const heroIngredientOptions = [
+  "Chicken", "Beef", "Pork", "Fish", "Seafood", 
+  "Pasta", "Vegetable", "Pastry", "Dessert"
+] as const;
 
 export const insertRecipeSchema = createInsertSchema(recipes).omit({
   id: true,
   createdAt: true,
+  rating: true, // Remove rating from insert schema
 }).extend({
   cookTime: z.number().min(1).max(1440), // 1 minute to 24 hours
   servings: z.number().min(1).max(50),
-  rating: z.number().min(0).max(5).optional(),
+  heroIngredient: z.enum(heroIngredientOptions),
 });
 
 export type InsertRecipe = z.infer<typeof insertRecipeSchema>;

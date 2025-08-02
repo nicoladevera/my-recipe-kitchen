@@ -1,6 +1,7 @@
 import { useState, useRef } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
+import { heroIngredientOptions } from "@shared/schema";
 
 interface AddRecipeFormProps {
   onSuccess?: () => void;
@@ -14,7 +15,6 @@ export function AddRecipeForm({ onSuccess }: AddRecipeFormProps) {
     servings: "",
     ingredients: "",
     instructions: "",
-    rating: 0,
   });
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string>("");
@@ -65,7 +65,6 @@ export function AddRecipeForm({ onSuccess }: AddRecipeFormProps) {
     formDataToSend.append("servings", formData.servings);
     formDataToSend.append("ingredients", formData.ingredients);
     formDataToSend.append("instructions", formData.instructions);
-    formDataToSend.append("rating", formData.rating.toString());
     
     if (photoFile) {
       formDataToSend.append("photo", photoFile);
@@ -94,7 +93,6 @@ export function AddRecipeForm({ onSuccess }: AddRecipeFormProps) {
       servings: "",
       ingredients: "",
       instructions: "",
-      rating: 0,
     });
     setPhotoFile(null);
     setPhotoPreview("");
@@ -103,9 +101,7 @@ export function AddRecipeForm({ onSuccess }: AddRecipeFormProps) {
     }
   };
 
-  const updateRating = (rating: number) => {
-    setFormData(prev => ({ ...prev, rating }));
-  };
+
 
   return (
     <>
@@ -131,15 +127,18 @@ export function AddRecipeForm({ onSuccess }: AddRecipeFormProps) {
 
         <div className="recipe-form-group">
           <label htmlFor="hero-ingredient">Hero Ingredient *</label>
-          <input
-            type="text"
+          <select
             id="hero-ingredient"
-            className="recipe-input"
+            className="recipe-select"
             required
-            placeholder="Main ingredient (e.g., Chicken, Pasta, Tomatoes)"
             value={formData.heroIngredient}
             onChange={(e) => setFormData(prev => ({ ...prev, heroIngredient: e.target.value }))}
-          />
+          >
+            <option value="">Select main ingredient</option>
+            {heroIngredientOptions.map(ingredient => (
+              <option key={ingredient} value={ingredient}>{ingredient}</option>
+            ))}
+          </select>
         </div>
 
         <div className="recipe-form-group">
@@ -220,20 +219,7 @@ export function AddRecipeForm({ onSuccess }: AddRecipeFormProps) {
           )}
         </div>
 
-        <div className="recipe-form-group">
-          <label>Initial Rating</label>
-          <div className="recipe-rating">
-            {Array.from({ length: 5 }, (_, i) => (
-              <span
-                key={i}
-                className={`recipe-star ${i < formData.rating ? 'filled' : ''}`}
-                onClick={() => updateRating(i + 1)}
-              >
-                ★
-              </span>
-            ))}
-          </div>
-        </div>
+
 
         <button 
           type="submit" 

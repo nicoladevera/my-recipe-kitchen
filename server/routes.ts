@@ -111,12 +111,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Add cooking log entry
   app.post("/api/recipes/:id/cooking-log", async (req, res) => {
     try {
-      const { date, notes } = req.body;
-      if (!date || !notes) {
-        return res.status(400).json({ error: "Date and notes are required" });
+      const { date, notes, rating } = req.body;
+      if (!date || !notes || rating === undefined) {
+        return res.status(400).json({ error: "Date, notes, and rating are required" });
       }
 
-      const recipe = await storage.addCookingLog(req.params.id, { date, notes });
+      const recipe = await storage.addCookingLog(req.params.id, { date, notes, rating });
       if (!recipe) {
         return res.status(404).json({ error: "Recipe not found" });
       }
