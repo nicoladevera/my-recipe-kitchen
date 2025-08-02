@@ -53,7 +53,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Create new recipe
   app.post("/api/recipes", upload.single('photo'), async (req, res) => {
     try {
-      const recipeData = insertRecipeSchema.parse(req.body);
+      // Parse numbers from form data strings
+      const formData = {
+        ...req.body,
+        cookTime: parseInt(req.body.cookTime),
+        servings: parseInt(req.body.servings),
+      };
+      
+      const recipeData = insertRecipeSchema.parse(formData);
       
       // If photo was uploaded, set the photo path
       if (req.file) {

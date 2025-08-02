@@ -61,8 +61,8 @@ export function AddRecipeForm({ onSuccess }: AddRecipeFormProps) {
     const formDataToSend = new FormData();
     formDataToSend.append("name", formData.name);
     formDataToSend.append("heroIngredient", formData.heroIngredient);
-    formDataToSend.append("cookTime", parseInt(formData.cookTime).toString());
-    formDataToSend.append("servings", parseInt(formData.servings).toString());
+    formDataToSend.append("cookTime", formData.cookTime);
+    formDataToSend.append("servings", formData.servings);
     formDataToSend.append("ingredients", formData.ingredients);
     formDataToSend.append("instructions", formData.instructions);
     
