@@ -118,12 +118,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Add cooking log entry
   app.post("/api/recipes/:id/cooking-log", async (req, res) => {
     try {
-      const { date, notes, rating } = req.body;
-      if (!date || !notes || rating === undefined) {
-        return res.status(400).json({ error: "Date, notes, and rating are required" });
+      const { date, timestamp, notes, rating } = req.body;
+      // Accept either 'timestamp' (new format) or 'date' (legacy format)
+      const logTimestamp = timestamp || date;
+      
+      if (!logTimestamp || !notes || rating === undefined) {
+        return res.status(400).json({ error: "Timestamp/date, notes, and rating are required" });
       }
 
-      const recipe = await storage.addCookingLog(req.params.id, { date, notes, rating });
+      // Store as timestamp for new entries, maintain backward compatibility
+      const logEntry = { timestamp: logTimestamp, notes, rating };
+      const recipe = await storage.addCookingLog(req.params.id, logEntry);
       if (!recipe) {
         return res.status(404).json({ error: "Recipe not found" });
       }

@@ -18,7 +18,7 @@ export const recipes = pgTable("recipes", {
 });
 
 export interface CookingLogEntry {
-  date: string;
+  timestamp: string; // ISO timestamp for precise sorting
   notes: string;
   rating: number;
 }

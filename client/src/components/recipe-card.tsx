@@ -119,7 +119,7 @@ export function RecipeCard({ recipe }: RecipeCardProps) {
           {showCookingLog && recipe.cookingLog?.map((log, index) => (
             <div key={index} className="flex justify-between items-center py-2 border-b border-gray-200 last:border-b-0">
               <div>
-                <span>{log.date}</span>
+                <span>{new Date((log as any).timestamp || (log as any).date).toLocaleDateString()}</span>
                 <div className="recipe-rating mt-1">
                   {Array.from({ length: 5 }, (_, i) => (
                     <span

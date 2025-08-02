@@ -23,7 +23,7 @@ export function CookingLogModal({ isOpen, onClose, recipeId, recipeName }: Cooki
     mutationFn: async () => {
       // First log the cooking session
       const logResponse = await apiRequest("POST", `/api/recipes/${recipeId}/cooking-log`, {
-        date: new Date().toISOString().split('T')[0],
+        timestamp: new Date().toISOString(),
         notes: notes || "Cooked this recipe",
         rating,
       });

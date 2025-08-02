@@ -14,16 +14,20 @@ export default function Home() {
 
   // Sort recipes based on cooking logs and creation date
   const sortedRecipes = [...recipes].sort((a, b) => {
-    // Helper function to get the most recent cooking log date
-    const getMostRecentLogDate = (recipe: any): number | null => {
+    // Helper function to get the most recent cooking log timestamp
+    const getMostRecentLogTimestamp = (recipe: any): number | null => {
       if (!recipe.cookingLog || recipe.cookingLog.length === 0) return null;
-      return Math.max(...recipe.cookingLog.map((log: any) => new Date(log.date).getTime()));
+      return Math.max(...recipe.cookingLog.map((log: any) => {
+        // Handle both old 'date' format and new 'timestamp' format for backward compatibility
+        const dateValue = log.timestamp || log.date;
+        return new Date(dateValue).getTime();
+      }));
     };
 
-    const aRecentLog = getMostRecentLogDate(a);
-    const bRecentLog = getMostRecentLogDate(b);
-    const aCreatedAt = new Date(a.createdAt).getTime();
-    const bCreatedAt = new Date(b.createdAt).getTime();
+    const aRecentLog = getMostRecentLogTimestamp(a);
+    const bRecentLog = getMostRecentLogTimestamp(b);
+    const aCreatedAt = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+    const bCreatedAt = b.createdAt ? new Date(b.createdAt).getTime() : 0;
     
     // Check if recipes have cooking logs
     const aHasLogs = a.cookingLog && a.cookingLog.length > 0;
