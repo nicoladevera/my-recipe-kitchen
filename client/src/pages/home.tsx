@@ -12,7 +12,33 @@ export default function Home() {
 
   const { data: recipes = [], isLoading } = useRecipes();
 
-  const filteredRecipes = recipes.filter(recipe => {
+  // Sort recipes based on cooking logs and creation date
+  const sortedRecipes = [...recipes].sort((a, b) => {
+    // Helper function to get the most recent cooking log date
+    const getMostRecentLogDate = (recipe: any) => {
+      if (!recipe.cookingLog || recipe.cookingLog.length === 0) return null;
+      return Math.max(...recipe.cookingLog.map((log: any) => new Date(log.date).getTime()));
+    };
+
+    const aRecentLog = getMostRecentLogDate(a);
+    const bRecentLog = getMostRecentLogDate(b);
+    const aCreatedAt = new Date(a.createdAt).getTime();
+    const bCreatedAt = new Date(b.createdAt).getTime();
+
+    // If both have cooking logs, sort by most recent log
+    if (aRecentLog && bRecentLog) {
+      return bRecentLog - aRecentLog;
+    }
+    
+    // If only one has cooking logs, prioritize it
+    if (aRecentLog && !bRecentLog) return -1;
+    if (!aRecentLog && bRecentLog) return 1;
+    
+    // If neither has cooking logs, sort by creation date (newest first)
+    return bCreatedAt - aCreatedAt;
+  });
+
+  const filteredRecipes = sortedRecipes.filter(recipe => {
     const matchesSearch = !searchTerm || 
       recipe.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       recipe.heroIngredient.toLowerCase().includes(searchTerm.toLowerCase()) ||

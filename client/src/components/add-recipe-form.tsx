@@ -187,7 +187,7 @@ export function AddRecipeForm({ onSuccess }: AddRecipeFormProps) {
             id="instructions"
             className="recipe-textarea"
             required
-            placeholder="Step-by-step cooking instructions..."
+            placeholder="Add step-by-step cooking instructions, but exclude the sequenced numbers at the start of each step..."
             value={formData.instructions}
             onChange={(e) => setFormData(prev => ({ ...prev, instructions: e.target.value }))}
           />
