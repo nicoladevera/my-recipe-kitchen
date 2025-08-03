@@ -69,7 +69,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.set({
         'Content-Type': contentType,
         'Cache-Control': 'public, max-age=31536000', // Cache for 1 year
-        'Content-Length': buffer.length.toString(),
+        'Content-Length': buffer ? buffer.length.toString() : '0',
       });
       
       console.log('Successfully served object:', objectPath, 'Size:', buffer.length);

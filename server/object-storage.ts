@@ -124,9 +124,35 @@ export async function serveFromObjectStorage(filePath: string): Promise<Buffer |
     }
     
     console.log(`Attempting to download file from Object Storage: ${filePath}`);
-    const buffer = await storageClient.downloadAsBytes(filePath);
-    console.log(`Successfully downloaded file: ${filePath}, size: ${buffer.length} bytes`);
-    return buffer;
+    
+    // Use downloadAsBytes - this returns an object with { ok: boolean, value: Buffer[] }
+    const result = await storageClient.downloadAsBytes(filePath);
+    
+    if (!result) {
+      console.warn(`No result returned for file: ${filePath}`);
+      return null;
+    }
+    
+    // Handle the response structure from Replit Object Storage SDK
+    if (typeof result === 'object' && result.ok && result.value) {
+      const bufferArray = result.value;
+      if (Array.isArray(bufferArray) && bufferArray.length > 0) {
+        const buffer = bufferArray[0]; // Get the first (and usually only) buffer
+        if (Buffer.isBuffer(buffer)) {
+          console.log(`Successfully downloaded file: ${filePath}, size: ${buffer.length} bytes`);
+          return buffer;
+        }
+      }
+    }
+    
+    // Direct buffer fallback
+    if (Buffer.isBuffer(result)) {
+      console.log(`Direct buffer download: ${filePath}, size: ${result.length} bytes`);
+      return result;
+    }
+    
+    console.error(`Unexpected result structure for ${filePath}:`, typeof result, result);
+    return null;
   } catch (error) {
     console.error(`Failed to serve ${filePath} from Object Storage:`, error);
     return null;
