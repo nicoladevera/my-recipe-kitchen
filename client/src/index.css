@@ -252,7 +252,7 @@
     margin-bottom: 28px;
     transition: all 0.4s ease;
     position: relative;
-    overflow: hidden;
+    overflow: visible;
   }
 
   .recipe-card::before {

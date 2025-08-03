@@ -1,3 +1,5 @@
+import { createPortal } from "react-dom";
+
 interface ConfirmationDialogProps {
   isOpen: boolean;
   onClose: () => void;
@@ -21,9 +23,9 @@ export function ConfirmationDialog({
 }: ConfirmationDialogProps) {
   if (!isOpen) return null;
 
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-2xl">
+  const dialogContent = (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4" style={{ zIndex: 9999 }}>
+      <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-2xl" style={{ zIndex: 10000 }}>
         <div className="mb-4">
           <h3 className="text-lg font-semibold text-gray-900 mb-2">{title}</h3>
           <p className="text-gray-600 text-sm leading-relaxed">{message}</p>
@@ -48,4 +50,6 @@ export function ConfirmationDialog({
       </div>
     </div>
   );
+
+  return createPortal(dialogContent, document.body);
 }
