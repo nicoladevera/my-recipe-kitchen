@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Loader2, ArrowLeft } from "lucide-react";
+import { PasswordInput } from "@/components/ui/password-input";
 import { useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -16,7 +17,6 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 const updateProfileSchema = z.object({
   username: z.string().min(3).max(50).regex(/^[a-zA-Z0-9_-]+$/, "Username can only contain letters, numbers, underscores, and hyphens"),
   displayName: z.string().min(1, "Display name is required"),
-  bio: z.string().optional(),
 });
 
 const updatePasswordSchema = z.object({
@@ -48,7 +48,6 @@ export default function SettingsPage() {
     defaultValues: {
       username: user.username,
       displayName: user.displayName || "",
-      bio: user.bio || "",
     },
   });
 
@@ -175,14 +174,7 @@ export default function SettingsPage() {
                       )}
                     </div>
 
-                    <div>
-                      <Label htmlFor="bio">Bio (optional)</Label>
-                      <Input
-                        id="bio"
-                        {...profileForm.register("bio")}
-                        placeholder="Tell others about your cooking style"
-                      />
-                    </div>
+
 
                     <Button 
                       type="submit" 
@@ -211,9 +203,8 @@ export default function SettingsPage() {
                   <form onSubmit={passwordForm.handleSubmit(onUpdatePassword)} className="space-y-4">
                     <div>
                       <Label htmlFor="currentPassword">Current Password</Label>
-                      <Input
+                      <PasswordInput
                         id="currentPassword"
-                        type="password"
                         {...passwordForm.register("currentPassword")}
                         placeholder="Enter your current password"
                       />
@@ -226,9 +217,8 @@ export default function SettingsPage() {
 
                     <div>
                       <Label htmlFor="newPassword">New Password</Label>
-                      <Input
+                      <PasswordInput
                         id="newPassword"
-                        type="password"
                         {...passwordForm.register("newPassword")}
                         placeholder="Enter your new password"
                       />
@@ -241,9 +231,8 @@ export default function SettingsPage() {
 
                     <div>
                       <Label htmlFor="confirmPassword">Confirm New Password</Label>
-                      <Input
+                      <PasswordInput
                         id="confirmPassword"
-                        type="password"
                         {...passwordForm.register("confirmPassword")}
                         placeholder="Confirm your new password"
                       />

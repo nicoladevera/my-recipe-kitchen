@@ -87,7 +87,7 @@ export default function Home({ recipes: propRecipes, isOwner = false, username }
         <div className="recipe-container">
           <h1>🌿 My Recipe Kitchen</h1>
           {username && (
-            <p className="text-recipe-brown-light text-sm mb-4">by <span className="font-semibold text-recipe-green">{username}</span></p>
+            <p className="text-recipe-brown-light text-sm mb-6">by <span className="font-semibold text-recipe-green">{username}</span></p>
           )}
           <p>A thoughtful collection of your favorite recipes, beautifully organized</p>
           
@@ -127,11 +127,9 @@ export default function Home({ recipes: propRecipes, isOwner = false, username }
             <div className="mt-12">
               <div className="recipe-card max-w-4xl mx-auto">
                 <div className="text-center">
-                  <h2 className="recipe-title text-2xl mb-4">Welcome to Recipe Kitchen</h2>
-                  <p className="text-recipe-brown-light text-lg mb-6 leading-relaxed">
-                    Your personal culinary companion for creating, organizing, and sharing your favorite recipes. 
-                    Build your own recipe collection, track your cooking sessions with photos and notes, 
-                    and discover inspiration from our community of home cooks.
+                  <h2 className="recipe-title text-2xl mb-4">Welcome to My Recipe Kitchen</h2>
+                  <p className="text-recipe-brown-light text-lg mb-8 leading-relaxed">
+                    Your personal culinary companion for creating, organizing, and sharing your favorite recipes.
                   </p>
                   <div className="grid md:grid-cols-3 gap-6 text-center">
                     <div className="p-4">

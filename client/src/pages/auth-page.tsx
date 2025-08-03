@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Loader2 } from "lucide-react";
+import { PasswordInput } from "@/components/ui/password-input";
 
 const loginSchema = z.object({
   username: z.string().min(1, "Username is required"),
@@ -40,13 +41,12 @@ export default function AuthPage() {
   });
 
   const registerForm = useForm<RegisterForm>({
-    resolver: zodResolver(insertUserSchema),
+    resolver: zodResolver(insertUserSchema.omit({ bio: true })),
     defaultValues: {
       username: "",
       email: "",
       password: "",
       displayName: "",
-      bio: "",
     },
   });
 
@@ -110,9 +110,8 @@ export default function AuthPage() {
                       </div>
                       <div>
                         <Label htmlFor="login-password" className="text-sm">Password</Label>
-                        <Input
+                        <PasswordInput
                           id="login-password"
-                          type="password"
                           {...loginForm.register("password")}
                           placeholder="Enter your password"
                           className="mt-1"
@@ -193,9 +192,8 @@ export default function AuthPage() {
                       </div>
                       <div>
                         <Label htmlFor="register-password" className="text-sm">Password</Label>
-                        <Input
+                        <PasswordInput
                           id="register-password"
-                          type="password"
                           {...registerForm.register("password")}
                           placeholder="Create a strong password"
                           className="mt-1"

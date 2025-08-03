@@ -206,7 +206,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const updates = z.object({
         username: z.string().min(3).max(50).regex(/^[a-zA-Z0-9_-]+$/).optional(),
         displayName: z.string().min(1).optional(),
-        bio: z.string().optional(),
       }).parse(req.body);
 
       // Check if username is already taken (if being changed)
@@ -245,6 +244,92 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       res.status(500).json({ error: "Failed to update password" });
     }
+  });
+
+  // Generate recipe images endpoint
+  app.get("/api/generate-image/:recipe", (req, res) => {
+    const recipe = req.params.recipe;
+    const width = 400;
+    const height = 300;
+    
+    // Create a simple SVG image based on recipe type
+    let svg = '';
+    let bgColor = '#8B4513';
+    let title = '';
+    
+    switch(recipe) {
+      case 'seafood-paella':
+        bgColor = '#FFD700';
+        title = 'Seafood Paella';
+        svg = `<svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <radialGradient id="bg" cx="50%" cy="50%" r="50%">
+              <stop offset="0%" style="stop-color:#FFE55C;stop-opacity:1" />
+              <stop offset="100%" style="stop-color:#DAA520;stop-opacity:1" />
+            </radialGradient>
+          </defs>
+          <rect width="100%" height="100%" fill="url(#bg)"/>
+          <circle cx="200" cy="150" r="120" fill="#CD853F" stroke="#8B4513" stroke-width="8"/>
+          <circle cx="150" cy="120" r="15" fill="#FF6347"/>
+          <circle cx="250" cy="140" r="15" fill="#FF6347"/>
+          <circle cx="180" cy="180" r="12" fill="#90EE90"/>
+          <circle cx="220" cy="170" r="12" fill="#90EE90"/>
+          <path d="M160 100 Q200 80 240 100" stroke="#228B22" stroke-width="4" fill="none"/>
+          <text x="200" y="280" text-anchor="middle" fill="#654321" font-family="serif" font-size="20" font-weight="bold">${title}</text>
+        </svg>`;
+        break;
+      case 'chicken-parmesan':
+        bgColor = '#CD853F';
+        title = 'Chicken Parmesan';
+        svg = `<svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <radialGradient id="bg" cx="50%" cy="50%" r="50%">
+              <stop offset="0%" style="stop-color:#F5DEB3;stop-opacity:1" />
+              <stop offset="100%" style="stop-color:#DEB887;stop-opacity:1" />
+            </radialGradient>
+          </defs>
+          <rect width="100%" height="100%" fill="url(#bg)"/>
+          <ellipse cx="200" cy="150" rx="100" ry="60" fill="#D2691E"/>
+          <ellipse cx="200" cy="150" rx="95" ry="55" fill="#FF6347"/>
+          <ellipse cx="200" cy="145" rx="85" ry="45" fill="#FFFACD"/>
+          <circle cx="170" cy="130" r="8" fill="#228B22"/>
+          <circle cx="230" cy="140" r="8" fill="#228B22"/>
+          <text x="200" y="280" text-anchor="middle" fill="#654321" font-family="serif" font-size="20" font-weight="bold">${title}</text>
+        </svg>`;
+        break;
+      case 'beef-stroganoff':
+        bgColor = '#8B4513';
+        title = 'Beef Stroganoff';
+        svg = `<svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <radialGradient id="bg" cx="50%" cy="50%" r="50%">
+              <stop offset="0%" style="stop-color:#F5F5DC;stop-opacity:1" />
+              <stop offset="100%" style="stop-color:#DDD;stop-opacity:1" />
+            </radialGradient>
+          </defs>
+          <rect width="100%" height="100%" fill="url(#bg)"/>
+          <ellipse cx="200" cy="160" rx="110" ry="50" fill="#A0522D"/>
+          <ellipse cx="200" cy="155" rx="100" ry="45" fill="#F5F5DC"/>
+          <rect x="150" y="130" width="15" height="30" fill="#8B4513" rx="2"/>
+          <rect x="170" y="125" width="12" height="35" fill="#8B4513" rx="2"/>
+          <rect x="185" y="135" width="18" height="25" fill="#8B4513" rx="2"/>
+          <rect x="210" y="130" width="14" height="30" fill="#8B4513" rx="2"/>
+          <rect x="230" y="128" width="16" height="32" fill="#8B4513" rx="2"/>
+          <ellipse cx="175" cy="140" rx="12" ry="8" fill="#D2691E"/>
+          <ellipse cx="220" cy="145" rx="10" ry="6" fill="#D2691E"/>
+          <text x="200" y="280" text-anchor="middle" fill="#654321" font-family="serif" font-size="20" font-weight="bold">${title}</text>
+        </svg>`;
+        break;
+      default:
+        svg = `<svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg">
+          <rect width="100%" height="100%" fill="#f0f0f0"/>
+          <text x="200" y="150" text-anchor="middle" fill="#666" font-family="sans-serif" font-size="16">Recipe Image</text>
+        </svg>`;
+    }
+    
+    res.setHeader('Content-Type', 'image/svg+xml');
+    res.setHeader('Cache-Control', 'public, max-age=86400');
+    res.send(svg);
   });
 
   // Serve uploaded files
