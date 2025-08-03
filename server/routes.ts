@@ -3,13 +3,14 @@ import express from "express";
 import { createServer, type Server } from "http";
 import multer from "multer";
 import path from "path";
+import { uploadToMemory, uploadToObjectStorage, isObjectStorageConfigured } from "./object-storage";
 import { storage } from "./storage";
 import { insertRecipeSchema } from "@shared/schema";
 import { z } from "zod";
 import { setupAuth } from "./auth";
 
-// Configure multer for photo uploads
-const upload = multer({
+// Configure multer for photo uploads - use object storage if available, otherwise local storage
+const upload = isObjectStorageConfigured() ? uploadToMemory : multer({
   dest: 'uploads/',
   limits: {
     fileSize: 5 * 1024 * 1024, // 5MB limit
@@ -124,9 +125,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const recipeData = insertRecipeSchema.parse(formData);
       
-      // If photo was uploaded, set the photo path
+      // If photo was uploaded, handle storage appropriately
       if (req.file) {
-        recipeData.photo = `/uploads/${req.file.filename}`;
+        if (isObjectStorageConfigured()) {
+          // Upload to persistent object storage
+          recipeData.photo = await uploadToObjectStorage(req.file);
+        } else {
+          // Fallback to local storage (development only)
+          recipeData.photo = `/uploads/${req.file.filename}`;
+        }
       }
 
       const recipe = await storage.createRecipe(recipeData, req.user!.id);
@@ -145,9 +152,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const updates = insertRecipeSchema.partial().parse(req.body);
       
-      // If photo was uploaded, set the photo path
+      // If photo was uploaded, handle storage appropriately
       if (req.file) {
-        updates.photo = `/uploads/${req.file.filename}`;
+        if (isObjectStorageConfigured()) {
+          // Upload to persistent object storage
+          updates.photo = await uploadToObjectStorage(req.file);
+        } else {
+          // Fallback to local storage (development only)
+          updates.photo = `/uploads/${req.file.filename}`;
+        }
       }
 
       const recipe = await storage.updateRecipe(req.params.id, updates, req.user!.id);
@@ -193,7 +206,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // If photo was uploaded, update the recipe photo
       if (req.file) {
-        await storage.updateRecipe(req.params.id, { photo: `/uploads/${req.file.filename}` }, req.user!.id);
+        let photoUrl: string;
+        if (isObjectStorageConfigured()) {
+          // Upload to persistent object storage
+          photoUrl = await uploadToObjectStorage(req.file);
+        } else {
+          // Fallback to local storage (development only)
+          photoUrl = `/uploads/${req.file.filename}`;
+        }
+        await storage.updateRecipe(req.params.id, { photo: photoUrl }, req.user!.id);
       }
       
       const recipe = await storage.addCookingLog(req.params.id, logEntry, req.user!.id);
