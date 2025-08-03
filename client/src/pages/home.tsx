@@ -117,24 +117,24 @@ export default function Home({ recipes: propRecipes, isOwner = false, username }
       </div>
 
       <div className="recipe-container">
-        <div className="recipe-nav">
-          <button
-            className={`recipe-nav-btn ${activeSection === "my-recipes" ? "active" : ""}`}
-            onClick={() => setActiveSection("my-recipes")}
-          >
-            {username ? `${username}'s Recipes` : "Recipes"}
-          </button>
-          {isOwner && (
+        {isOwner && (
+          <div className="recipe-nav">
+            <button
+              className={`recipe-nav-btn ${activeSection === "my-recipes" ? "active" : ""}`}
+              onClick={() => setActiveSection("my-recipes")}
+            >
+              {username ? `${username}'s Recipes` : "My Recipes"}
+            </button>
             <button
               className={`recipe-nav-btn ${activeSection === "add-recipe" ? "active" : ""}`}
               onClick={() => setActiveSection("add-recipe")}
             >
               Add Recipe
             </button>
-          )}
-        </div>
+          </div>
+        )}
 
-{activeSection === "my-recipes" ? (
+        {(activeSection === "my-recipes" || !isOwner) ? (
           <div className="recipe-section">
             <h2>{username ? `${username}'s Recipe Collection` : "Recipe Collection"}</h2>
             
