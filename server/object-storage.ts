@@ -9,10 +9,15 @@ async function initializeObjectStorage() {
   if (!client) {
     try {
       const { Client } = await import('@replit/object-storage');
-      // Initialize client without bucket ID - it will use environment variables
-      client = new Client();
+      // Use the bucket ID from environment variables for proper initialization
+      const bucketId = process.env.DEFAULT_OBJECT_STORAGE_BUCKET_ID;
+      if (!bucketId) {
+        throw new Error('DEFAULT_OBJECT_STORAGE_BUCKET_ID environment variable not set');
+      }
+      // Pass bucket ID as an option object to the Client constructor
+      client = new Client({ bucketId });
       objectStorageAvailable = true;
-      console.log('Object Storage initialized successfully');
+      console.log('Object Storage initialized successfully with bucket:', bucketId);
     } catch (error) {
       console.error('Object Storage initialization failed:', error);
       objectStorageAvailable = false;
