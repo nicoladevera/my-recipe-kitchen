@@ -19,7 +19,7 @@ export const users = pgTable("users", {
 
 export const recipes = pgTable("recipes", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  userId: varchar("user_id").references(() => users.id, { onDelete: "cascade" }),
   name: text("name").notNull(),
   heroIngredient: text("hero_ingredient").notNull(),
   cookTime: integer("cook_time").notNull(),

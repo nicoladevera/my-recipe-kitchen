@@ -7,14 +7,20 @@ import { AuthProvider } from "@/hooks/use-auth";
 import Home from "@/pages/home";
 import AuthPage from "@/pages/auth-page";
 import UserPage from "@/pages/user-page";
+import SettingsPage from "@/pages/settings-page";
 import NotFound from "@/pages/not-found";
 
 function Router() {
   return (
     <Switch>
       <Route path="/auth" component={AuthPage} />
+      <Route path="/settings">
+        <SettingsPage />
+      </Route>
       <Route path="/:username" component={UserPage} />
-      <Route path="/" component={Home} />
+      <Route path="/">
+        <Home />
+      </Route>
       <Route component={NotFound} />
     </Switch>
   );

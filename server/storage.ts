@@ -1,6 +1,6 @@
 import { type Recipe, type InsertRecipe, type CookingLogEntry, type User, type InsertUser, recipes, users } from "@shared/schema";
 import { db } from "./db";
-import { eq, and } from "drizzle-orm";
+import { eq, and, isNull } from "drizzle-orm";
 
 export interface IStorage {
   // User operations
@@ -58,7 +58,7 @@ export class DatabaseStorage implements IStorage {
   async getRecipes(userId?: string): Promise<Recipe[]> {
     const query = userId 
       ? db.select().from(recipes).where(eq(recipes.userId, userId))
-      : db.select().from(recipes);
+      : db.select().from(recipes).where(isNull(recipes.userId)); // Only return static recipes (null user_id) for home page
     
     const allRecipes = await query;
     

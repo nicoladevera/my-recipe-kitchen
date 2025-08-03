@@ -87,7 +87,7 @@ export default function Home({ recipes: propRecipes, isOwner = false, username }
         <div className="recipe-container">
           <h1>🌿 My Recipe Kitchen</h1>
           {username && (
-            <p className="text-recipe-brown-light text-sm mb-2">by {username}</p>
+            <p className="text-recipe-brown-light text-sm mb-4">by <span className="font-semibold text-recipe-green">{username}</span></p>
           )}
           <p>A thoughtful collection of your favorite recipes, beautifully organized</p>
           
@@ -103,6 +103,14 @@ export default function Home({ recipes: propRecipes, isOwner = false, username }
                     My Recipes
                   </Button>
                 )}
+                {isOwner && (
+                  <Button
+                    onClick={() => setLocation("/settings")}
+                    variant="outline"
+                  >
+                    Settings
+                  </Button>
+                )}
                 <Button onClick={handleLogout} variant="outline">
                   Logout
                 </Button>
@@ -113,6 +121,45 @@ export default function Home({ recipes: propRecipes, isOwner = false, username }
               </Button>
             )}
           </div>
+          
+          {/* Explanatory section for non-logged in users */}
+          {!user && !isOwner && (
+            <div className="mt-12">
+              <div className="recipe-card max-w-4xl mx-auto">
+                <div className="text-center">
+                  <h2 className="recipe-title text-2xl mb-4">Welcome to Recipe Kitchen</h2>
+                  <p className="text-recipe-brown-light text-lg mb-6 leading-relaxed">
+                    Your personal culinary companion for creating, organizing, and sharing your favorite recipes. 
+                    Build your own recipe collection, track your cooking sessions with photos and notes, 
+                    and discover inspiration from our community of home cooks.
+                  </p>
+                  <div className="grid md:grid-cols-3 gap-6 text-center">
+                    <div className="p-4">
+                      <div className="text-3xl mb-3">📝</div>
+                      <h3 className="font-semibold text-recipe-green mb-2">Create & Organize</h3>
+                      <p className="text-sm text-recipe-brown-light">
+                        Build your personal recipe collection with detailed ingredients, instructions, and photos
+                      </p>
+                    </div>
+                    <div className="p-4">
+                      <div className="text-3xl mb-3">📸</div>
+                      <h3 className="font-semibold text-recipe-green mb-2">Track Your Cooking</h3>
+                      <p className="text-sm text-recipe-brown-light">
+                        Log cooking sessions with photos, notes, and ratings to perfect your dishes over time
+                      </p>
+                    </div>
+                    <div className="p-4">
+                      <div className="text-3xl mb-3">🌐</div>
+                      <h3 className="font-semibold text-recipe-green mb-2">Share & Discover</h3>
+                      <p className="text-sm text-recipe-brown-light">
+                        Share your recipes publicly and explore collections from other passionate cooks
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
@@ -123,7 +170,7 @@ export default function Home({ recipes: propRecipes, isOwner = false, username }
               className={`recipe-nav-btn ${activeSection === "my-recipes" ? "active" : ""}`}
               onClick={() => setActiveSection("my-recipes")}
             >
-              {username ? `${username}'s Recipes` : "My Recipes"}
+              Recipes
             </button>
             <button
               className={`recipe-nav-btn ${activeSection === "add-recipe" ? "active" : ""}`}
@@ -136,7 +183,7 @@ export default function Home({ recipes: propRecipes, isOwner = false, username }
 
         {(activeSection === "my-recipes" || !isOwner) ? (
           <div className="recipe-section">
-            <h2>{username ? `${username}'s Recipe Collection` : "Recipe Collection"}</h2>
+            <h2>{username && user?.displayName ? `${user.displayName}'s Recipe Collection` : username ? `${username}'s Recipe Collection` : "Recipe Collection"}</h2>
             
             <RecipeFilters
               searchTerm={searchTerm}

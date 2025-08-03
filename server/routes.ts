@@ -200,6 +200,53 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // User profile update endpoints
+  app.patch("/api/user", requireAuth, async (req, res) => {
+    try {
+      const updates = z.object({
+        username: z.string().min(3).max(50).regex(/^[a-zA-Z0-9_-]+$/).optional(),
+        displayName: z.string().min(1).optional(),
+        bio: z.string().optional(),
+      }).parse(req.body);
+
+      // Check if username is already taken (if being changed)
+      if (updates.username && updates.username !== req.user!.username) {
+        const existingUser = await storage.getUserByUsername(updates.username);
+        if (existingUser) {
+          return res.status(400).json({ error: "Username already taken" });
+        }
+      }
+
+      const updatedUser = await storage.updateUser(req.user!.id, updates);
+      if (!updatedUser) {
+        return res.status(404).json({ error: "User not found" });
+      }
+      res.json(updatedUser);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ error: "Invalid user data", details: error.errors });
+      } else {
+        res.status(500).json({ error: "Failed to update user" });
+      }
+    }
+  });
+
+  app.patch("/api/user/password", requireAuth, async (req, res) => {
+    try {
+      const { currentPassword, newPassword } = req.body;
+      
+      if (!currentPassword || !newPassword) {
+        return res.status(400).json({ error: "Current password and new password are required" });
+      }
+
+      // This would require implementing password verification in the storage layer
+      // For now, return a placeholder response
+      res.status(501).json({ error: "Password update not yet implemented" });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to update password" });
+    }
+  });
+
   // Serve uploaded files
   app.use('/uploads', express.static('uploads'));
 
