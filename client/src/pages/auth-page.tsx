@@ -26,12 +26,8 @@ export default function AuthPage() {
   const [, setLocation] = useLocation();
   const [activeTab, setActiveTab] = useState("login");
 
-  // Define forms first
+  // Define forms with minimal validation for mobile compatibility
   const loginForm = useForm<LoginForm>({
-    resolver: zodResolver(loginSchema),
-    mode: "onSubmit",
-    reValidateMode: "onSubmit",
-    shouldFocusError: false,
     defaultValues: {
       username: "",
       password: "",
@@ -39,10 +35,6 @@ export default function AuthPage() {
   });
 
   const registerForm = useForm<RegisterForm>({
-    resolver: zodResolver(insertUserSchema),
-    mode: "onSubmit",
-    reValidateMode: "onSubmit",
-    shouldFocusError: false,
     defaultValues: {
       username: "",
       email: "",
@@ -53,35 +45,11 @@ export default function AuthPage() {
 
   const handleTabChange = (tab: string) => {
     setActiveTab(tab);
-    // Complete form state reset to prevent mobile validation issues
-    setTimeout(() => {
-      loginForm.reset({
-        username: "",
-        password: ""
-      }, {
-        keepErrors: false,
-        keepDirty: false,
-        keepIsSubmitted: false,
-        keepTouched: false,
-        keepIsValid: false,
-        keepSubmitCount: false,
-      });
-      registerForm.reset({
-        username: "",
-        email: "",
-        password: "",
-        displayName: ""
-      }, {
-        keepErrors: false,
-        keepDirty: false,
-        keepIsSubmitted: false,
-        keepTouched: false,
-        keepIsValid: false,
-        keepSubmitCount: false,
-      });
-      loginForm.clearErrors();
-      registerForm.clearErrors();
-    }, 0);
+    // Force complete form reset for mobile compatibility
+    loginForm.reset();
+    registerForm.reset();
+    loginForm.clearErrors();
+    registerForm.clearErrors();
   };
 
   // Redirect if already logged in
@@ -91,40 +59,46 @@ export default function AuthPage() {
   }
 
   const onLogin = (data: LoginForm) => {
+    // Manual validation for mobile compatibility
+    if (!data.username?.trim()) {
+      loginForm.setError("username", { message: "Username is required" });
+      return;
+    }
+    if (!data.password?.trim()) {
+      loginForm.setError("password", { message: "Password is required" });
+      return;
+    }
+
     loginMutation.mutate(data, {
       onSuccess: (user) => {
-        loginForm.reset({
-          username: "",
-          password: ""
-        }, {
-          keepErrors: false,
-          keepDirty: false,
-          keepIsSubmitted: false,
-          keepTouched: false,
-          keepIsValid: false,
-          keepSubmitCount: false,
-        });
+        loginForm.reset();
         setLocation(`/${user.username}`);
       },
     });
   };
 
   const onRegister = (data: RegisterForm) => {
+    // Manual validation for mobile compatibility
+    if (!data.username?.trim()) {
+      registerForm.setError("username", { message: "Username is required" });
+      return;
+    }
+    if (!data.email?.trim()) {
+      registerForm.setError("email", { message: "Email is required" });
+      return;
+    }
+    if (!data.password?.trim()) {
+      registerForm.setError("password", { message: "Password is required" });
+      return;
+    }
+    if (!data.displayName?.trim()) {
+      registerForm.setError("displayName", { message: "Display name is required" });
+      return;
+    }
+
     registerMutation.mutate(data, {
       onSuccess: (user) => {
-        registerForm.reset({
-          username: "",
-          email: "",
-          password: "",
-          displayName: ""
-        }, {
-          keepErrors: false,
-          keepDirty: false,
-          keepIsSubmitted: false,
-          keepTouched: false,
-          keepIsValid: false,
-          keepSubmitCount: false,
-        });
+        registerForm.reset();
         setLocation(`/${user.username}`);
       },
     });
