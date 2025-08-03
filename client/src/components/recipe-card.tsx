@@ -3,6 +3,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { CookingLogModal } from "./cooking-log-modal";
+import { ConfirmationDialog } from "./confirmation-dialog";
 import type { Recipe } from "@shared/schema";
 
 interface RecipeCardProps {
@@ -12,6 +13,9 @@ interface RecipeCardProps {
 export function RecipeCard({ recipe }: RecipeCardProps) {
   const [showCookingLog, setShowCookingLog] = useState(false);
   const [showLogModal, setShowLogModal] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showLogDeleteConfirm, setShowLogDeleteConfirm] = useState(false);
+  const [logToDelete, setLogToDelete] = useState<number | null>(null);
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
@@ -56,15 +60,25 @@ export function RecipeCard({ recipe }: RecipeCardProps) {
   });
 
   const handleDelete = () => {
-    if (confirm("Are you sure you want to delete this recipe?")) {
-      deleteMutation.mutate(recipe.id);
-    }
+    setShowDeleteConfirm(true);
+  };
+
+  const confirmDelete = () => {
+    deleteMutation.mutate(recipe.id);
+    setShowDeleteConfirm(false);
   };
 
   const handleRemoveLog = (logIndex: number) => {
-    if (confirm("Are you sure you want to remove this cooking log entry?")) {
-      removeLogMutation.mutate({ recipeId: recipe.id, logIndex });
+    setLogToDelete(logIndex);
+    setShowLogDeleteConfirm(true);
+  };
+
+  const confirmRemoveLog = () => {
+    if (logToDelete !== null) {
+      removeLogMutation.mutate({ recipeId: recipe.id, logIndex: logToDelete });
     }
+    setShowLogDeleteConfirm(false);
+    setLogToDelete(null);
   };
 
   return (
@@ -187,6 +201,29 @@ export function RecipeCard({ recipe }: RecipeCardProps) {
         onClose={() => setShowLogModal(false)}
         recipeId={recipe.id}
         recipeName={recipe.name}
+      />
+
+      <ConfirmationDialog
+        isOpen={showDeleteConfirm}
+        onClose={() => setShowDeleteConfirm(false)}
+        onConfirm={confirmDelete}
+        title="Delete Recipe"
+        message={`Are you sure you want to delete "${recipe.name}"? This action cannot be undone.`}
+        confirmText="Delete Recipe"
+        isLoading={deleteMutation.isPending}
+      />
+
+      <ConfirmationDialog
+        isOpen={showLogDeleteConfirm}
+        onClose={() => {
+          setShowLogDeleteConfirm(false);
+          setLogToDelete(null);
+        }}
+        onConfirm={confirmRemoveLog}
+        title="Remove Cooking Log"
+        message="Are you sure you want to remove this cooking log entry? This action cannot be undone."
+        confirmText="Remove Entry"
+        isLoading={removeLogMutation.isPending}
       />
     </div>
   );
