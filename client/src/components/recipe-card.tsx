@@ -141,7 +141,7 @@ export function RecipeCard({ recipe }: RecipeCardProps) {
           onClick={handleDelete}
           disabled={deleteMutation.isPending}
         >
-          {deleteMutation.isPending ? "Deleting..." : "🗑️ Delete"}
+          {deleteMutation.isPending ? "Deleting..." : "Delete"}
         </button>
       </div>
 
@@ -193,7 +193,7 @@ export function RecipeCard({ recipe }: RecipeCardProps) {
         onClick={handleDelete}
         disabled={deleteMutation.isPending}
       >
-        {deleteMutation.isPending ? "Deleting..." : "🗑️ Delete"}
+        {deleteMutation.isPending ? "Deleting..." : "Delete"}
       </button>
 
       <CookingLogModal
