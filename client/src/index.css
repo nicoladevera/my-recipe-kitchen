@@ -474,9 +474,9 @@
     text-align: left;
   }
 
-  @media (min-width: 769px) {
+  @media (min-width: 768px) {
     .cooking-log-notes {
-      text-align: right;
+      text-align: right !important;
     }
   }
 
