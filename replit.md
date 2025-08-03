@@ -10,9 +10,9 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes (August 2025)
 
+- **Mobile Authentication Fixed**: Completely resolved mobile authentication issues by implementing native FormData handling instead of react-hook-form, enabling successful login, registration, and password changes on mobile devices
 - **Recipe Content Updated**: Replaced beef stroganoff with chocolate chip cookies recipe, using authentic Pexels food photography and proper pastry categorization with relevant cooking log notes about baking
 - **Cooking Log Layout Enhanced**: Improved spacing with 8px gaps, right-aligned notes on desktop, left-aligned on mobile for better readability
-- **Mobile Authentication Enhanced**: Simplified form validation and implemented direct form value retrieval to resolve mobile-specific form data capture issues
 - **User Page Cleanup**: Removed byline spacing issues by eliminating the "by [username]" text completely
 - **Login Authentication Fixed**: Resolved persistent 401 login errors by implementing proper Passport.js custom callback authentication flow with detailed error handling
 - **Recipe Photos Updated**: Replaced Chicken Parmesan and Beef Stroganoff with new high-quality Pexels photos that better represent the actual dishes
