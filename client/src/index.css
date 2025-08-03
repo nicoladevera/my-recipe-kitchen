@@ -459,18 +459,25 @@
   .cooking-log-content {
     display: flex;
     align-items: flex-start;
-    gap: 12px;
+    gap: 8px;
     flex: 1;
   }
 
   .cooking-log-content > div:first-child {
-    min-width: 100px;
+    min-width: 80px;
     flex-shrink: 0;
   }
 
   .cooking-log-notes {
     flex: 1;
     margin-top: 0;
+    text-align: right;
+  }
+
+  @media (max-width: 768px) {
+    .cooking-log-notes {
+      text-align: left;
+    }
   }
 
   .cooking-log-delete {

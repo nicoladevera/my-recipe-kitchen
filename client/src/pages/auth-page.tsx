@@ -32,12 +32,26 @@ export default function AuthPage() {
     loginForm.reset({
       username: "",
       password: ""
+    }, {
+      keepErrors: false,
+      keepDirty: false,
+      keepIsSubmitted: false,
+      keepTouched: false,
+      keepIsValid: false,
+      keepSubmitCount: false,
     });
     registerForm.reset({
       username: "",
       email: "",
       password: "",
       displayName: ""
+    }, {
+      keepErrors: false,
+      keepDirty: false,
+      keepIsSubmitted: false,
+      keepTouched: false,
+      keepIsValid: false,
+      keepSubmitCount: false,
     });
   };
 
@@ -50,6 +64,7 @@ export default function AuthPage() {
   const loginForm = useForm<LoginForm>({
     resolver: zodResolver(loginSchema),
     mode: "onSubmit",
+    reValidateMode: "onSubmit",
     defaultValues: {
       username: "",
       password: "",
@@ -59,6 +74,7 @@ export default function AuthPage() {
   const registerForm = useForm<RegisterForm>({
     resolver: zodResolver(insertUserSchema),
     mode: "onSubmit",
+    reValidateMode: "onSubmit",
     defaultValues: {
       username: "",
       email: "",
@@ -70,7 +86,17 @@ export default function AuthPage() {
   const onLogin = (data: LoginForm) => {
     loginMutation.mutate(data, {
       onSuccess: (user) => {
-        loginForm.reset();
+        loginForm.reset({
+          username: "",
+          password: ""
+        }, {
+          keepErrors: false,
+          keepDirty: false,
+          keepIsSubmitted: false,
+          keepTouched: false,
+          keepIsValid: false,
+          keepSubmitCount: false,
+        });
         setLocation(`/${user.username}`);
       },
     });
@@ -79,7 +105,19 @@ export default function AuthPage() {
   const onRegister = (data: RegisterForm) => {
     registerMutation.mutate(data, {
       onSuccess: (user) => {
-        registerForm.reset();
+        registerForm.reset({
+          username: "",
+          email: "",
+          password: "",
+          displayName: ""
+        }, {
+          keepErrors: false,
+          keepDirty: false,
+          keepIsSubmitted: false,
+          keepTouched: false,
+          keepIsValid: false,
+          keepSubmitCount: false,
+        });
         setLocation(`/${user.username}`);
       },
     });

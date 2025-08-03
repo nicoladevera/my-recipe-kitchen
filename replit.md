@@ -10,6 +10,9 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes (August 2025)
 
+- **Recipe Content Updated**: Replaced beef stroganoff with chocolate chip cookies recipe, using authentic Pexels food photography and proper pastry categorization
+- **Cooking Log Layout Enhanced**: Improved spacing with 8px gaps, right-aligned notes on desktop, left-aligned on mobile for better readability
+- **Mobile Authentication Fixed**: Implemented comprehensive form reset behavior with proper validation state clearing to resolve mobile-specific login/register validation errors
 - **Login Authentication Fixed**: Resolved persistent 401 login errors by implementing proper Passport.js custom callback authentication flow with detailed error handling
 - **Recipe Photos Updated**: Replaced Chicken Parmesan and Beef Stroganoff with new high-quality Pexels photos that better represent the actual dishes
 - **Form Input Bug Fixed**: Resolved numeric field display issues in Add Recipe form where cookTime and servings showed incorrect values due to improper string/number handling
