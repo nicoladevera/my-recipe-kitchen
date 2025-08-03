@@ -3,30 +3,14 @@ import express from "express";
 import { createServer, type Server } from "http";
 import multer from "multer";
 import path from "path";
-import { uploadToMemory, uploadToObjectStorage, isObjectStorageConfigured } from "./object-storage";
+import { uploadToMemory, uploadToObjectStorage, deleteFromObjectStorage, isObjectStorageConfigured, serveFromObjectStorage } from "./object-storage";
 import { storage } from "./storage";
 import { insertRecipeSchema } from "@shared/schema";
 import { z } from "zod";
 import { setupAuth } from "./auth";
 
-// Configure multer for photo uploads - use object storage if available, otherwise local storage
-const upload = isObjectStorageConfigured() ? uploadToMemory : multer({
-  dest: 'uploads/',
-  limits: {
-    fileSize: 5 * 1024 * 1024, // 5MB limit
-  },
-  fileFilter: (req, file, cb) => {
-    const allowedTypes = /jpeg|jpg|png|webp/;
-    const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
-    const mimetype = allowedTypes.test(file.mimetype);
-    
-    if (mimetype && extname) {
-      return cb(null, true);
-    } else {
-      cb(new Error('Only JPEG, PNG and WebP images are allowed'));
-    }
-  }
-});
+// Configure multer for photo uploads - use Object Storage for persistent storage
+const upload = uploadToMemory;
 
 // Middleware to check if user owns a recipe
 const requireRecipeOwnership = async (req: Request, res: Response, next: NextFunction) => {
@@ -60,6 +44,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Serve uploaded files statically
   app.use('/uploads', express.static('uploads'));
+  
+  // Serve files from Object Storage
+  app.get('/objects/:path(*)', async (req, res) => {
+    try {
+      const objectPath = req.params.path;
+      const buffer = await serveFromObjectStorage(objectPath);
+      
+      if (!buffer) {
+        return res.status(404).json({ error: 'File not found' });
+      }
+      
+      // Set appropriate headers
+      res.set({
+        'Content-Type': 'image/jpeg', // Default, could be enhanced to detect actual type
+        'Cache-Control': 'public, max-age=31536000', // Cache for 1 year
+      });
+      
+      res.send(buffer);
+    } catch (error) {
+      console.error('Error serving object:', error);
+      res.status(404).json({ error: 'File not found' });
+    }
+  });
 
   // Get user data by username (public)
   app.get("/api/users/:username", async (req, res) => {
@@ -125,15 +132,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const recipeData = insertRecipeSchema.parse(formData);
       
-      // If photo was uploaded, handle storage appropriately
+      // If photo was uploaded, store it in Object Storage
       if (req.file) {
-        if (isObjectStorageConfigured()) {
-          // Upload to persistent object storage
-          recipeData.photo = await uploadToObjectStorage(req.file);
-        } else {
-          // Fallback to local storage (development only)
-          recipeData.photo = `/uploads/${req.file.filename}`;
-        }
+        recipeData.photo = await uploadToObjectStorage(req.file);
       }
 
       const recipe = await storage.createRecipe(recipeData, req.user!.id);
@@ -152,14 +153,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const updates = insertRecipeSchema.partial().parse(req.body);
       
-      // If photo was uploaded, handle storage appropriately
+      // If photo was uploaded, store in Object Storage and delete old photo
       if (req.file) {
-        if (isObjectStorageConfigured()) {
-          // Upload to persistent object storage
-          updates.photo = await uploadToObjectStorage(req.file);
-        } else {
-          // Fallback to local storage (development only)
-          updates.photo = `/uploads/${req.file.filename}`;
+        // Get the existing recipe to check for old photo
+        const existingRecipe = await storage.getRecipe(req.params.id);
+        
+        // Upload new photo to Object Storage
+        updates.photo = await uploadToObjectStorage(req.file);
+        
+        // Delete old photo from Object Storage if it exists (not from external URLs or uploads)
+        if (existingRecipe?.photo && existingRecipe.photo.startsWith('/objects/')) {
+          await deleteFromObjectStorage(existingRecipe.photo);
         }
       }
 
@@ -180,10 +184,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Delete recipe (requires ownership)
   app.delete("/api/recipes/:id", requireRecipeOwnership, async (req, res) => {
     try {
+      // Get the recipe to check for photo before deletion
+      const recipe = await storage.getRecipe(req.params.id);
+      
+      // Delete from storage
       const deleted = await storage.deleteRecipe(req.params.id, req.user!.id);
       if (!deleted) {
         return res.status(404).json({ error: "Recipe not found" });
       }
+      
+      // Delete photo from Object Storage if it exists (not from external URLs or uploads)
+      if (recipe?.photo && recipe.photo.startsWith('/objects/')) {
+        await deleteFromObjectStorage(recipe.photo);
+      }
+      
       res.status(204).send();
     } catch (error) {
       res.status(500).json({ error: "Failed to delete recipe" });
@@ -204,16 +218,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Store as timestamp for new entries, maintain backward compatibility
       const logEntry = { timestamp: logTimestamp, notes, rating };
       
-      // If photo was uploaded, update the recipe photo
+      // If photo was uploaded, update the recipe photo in Object Storage
       if (req.file) {
-        let photoUrl: string;
-        if (isObjectStorageConfigured()) {
-          // Upload to persistent object storage
-          photoUrl = await uploadToObjectStorage(req.file);
-        } else {
-          // Fallback to local storage (development only)
-          photoUrl = `/uploads/${req.file.filename}`;
+        // Get the existing recipe to check for old photo
+        const existingRecipe = await storage.getRecipe(req.params.id);
+        
+        // Upload new photo to Object Storage
+        const photoUrl = await uploadToObjectStorage(req.file);
+        
+        // Delete old photo from Object Storage if it exists (not from external URLs or uploads)
+        if (existingRecipe?.photo && existingRecipe.photo.startsWith('/objects/')) {
+          await deleteFromObjectStorage(existingRecipe.photo);
         }
+        
         await storage.updateRecipe(req.params.id, { photo: photoUrl }, req.user!.id);
       }
       

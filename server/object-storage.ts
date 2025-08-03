@@ -1,8 +1,23 @@
 import multer from 'multer';
 import { nanoid } from 'nanoid';
 
-// Object Storage configuration - disabled for now due to bucket configuration issues
+// Initialize Replit Object Storage client lazily
+let client: any = null;
 let objectStorageAvailable = false;
+
+async function initializeObjectStorage() {
+  if (!client) {
+    try {
+      const { Client } = await import('@replit/object-storage');
+      client = new Client();
+      objectStorageAvailable = true;
+    } catch (error) {
+      console.warn('Object Storage initialization failed:', error);
+      objectStorageAvailable = false;
+    }
+  }
+  return client;
+}
 
 // Configure multer to use memory storage for cloud uploads
 export const uploadToMemory = multer({
@@ -23,12 +38,60 @@ export const uploadToMemory = multer({
   }
 });
 
-// Upload file to Replit Object Storage (currently disabled)
+// Upload file to Replit Object Storage
 export async function uploadToObjectStorage(file: Express.Multer.File): Promise<string> {
-  throw new Error('Object Storage is not currently configured');
+  const storageClient = await initializeObjectStorage();
+  if (!storageClient) {
+    throw new Error('Object Storage is not available');
+  }
+  
+  try {
+    const fileName = `recipe-photos/${nanoid()}-${file.originalname}`;
+    
+    // Upload the file buffer to Replit Object Storage
+    await storageClient.uploadFromBytes(fileName, file.buffer);
+    
+    // Return the path that can be served via our API
+    return `/objects/${fileName}`;
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    throw new Error(`Failed to upload to Object Storage: ${errorMessage}`);
+  }
 }
 
-// Check if Object Storage is available (currently disabled)
+// Delete file from Replit Object Storage
+export async function deleteFromObjectStorage(filePath: string): Promise<void> {
+  const storageClient = await initializeObjectStorage();
+  if (!storageClient) {
+    return; // Skip deletion if Object Storage not available
+  }
+  
+  try {
+    // Extract the actual file name from the path (remove /objects/ prefix)
+    const fileName = filePath.startsWith('/objects/') ? filePath.substring(9) : filePath;
+    await storageClient.delete(fileName);
+  } catch (error) {
+    // Log but don't throw - file might already be deleted
+    console.warn(`Failed to delete ${filePath} from Object Storage:`, error);
+  }
+}
+
+// Check if Object Storage is available
 export function isObjectStorageConfigured(): boolean {
-  return false;
+  return true; // Always try to use Object Storage first
+}
+
+// Serve file from Object Storage
+export async function serveFromObjectStorage(fileName: string): Promise<Buffer | null> {
+  const storageClient = await initializeObjectStorage();
+  if (!storageClient) {
+    return null;
+  }
+  
+  try {
+    return await storageClient.downloadAsBytes(fileName);
+  } catch (error) {
+    console.warn(`Failed to serve ${fileName} from Object Storage:`, error);
+    return null;
+  }
 }
