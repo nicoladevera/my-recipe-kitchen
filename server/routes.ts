@@ -238,9 +238,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Current password and new password are required" });
       }
 
-      // This would require implementing password verification in the storage layer
-      // For now, return a placeholder response
-      res.status(501).json({ error: "Password update not yet implemented" });
+      if (newPassword.length < 8) {
+        return res.status(400).json({ error: "New password must be at least 8 characters" });
+      }
+
+      const success = await storage.updateUserPassword(req.user!.id, currentPassword, newPassword);
+      if (!success) {
+        return res.status(400).json({ error: "Current password is incorrect" });
+      }
+      
+      res.json({ message: "Password updated successfully" });
     } catch (error) {
       res.status(500).json({ error: "Failed to update password" });
     }

@@ -9,6 +9,7 @@ export interface IStorage {
   getUserByEmail(email: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
   updateUser(id: string, updates: Partial<InsertUser>): Promise<User | undefined>;
+  updateUserPassword(id: string, currentPassword: string, newPassword: string): Promise<boolean>;
   
   // Recipe operations
   getRecipes(userId?: string): Promise<Recipe[]>;
@@ -52,6 +53,28 @@ export class DatabaseStorage implements IStorage {
       .where(eq(users.id, id))
       .returning();
     return updatedUser || undefined;
+  }
+
+  async updateUserPassword(id: string, currentPassword: string, newPassword: string): Promise<boolean> {
+    const { comparePasswords, hashPassword } = await import("./auth");
+    
+    // Get user to verify current password
+    const user = await this.getUser(id);
+    if (!user) return false;
+    
+    // Verify current password
+    const isCurrentPasswordCorrect = await comparePasswords(currentPassword, user.password);
+    if (!isCurrentPasswordCorrect) return false;
+    
+    // Hash new password and update
+    const hashedNewPassword = await hashPassword(newPassword);
+    const [updatedUser] = await db
+      .update(users)
+      .set({ password: hashedNewPassword, updatedAt: new Date() })
+      .where(eq(users.id, id))
+      .returning();
+    
+    return !!updatedUser;
   }
 
   // Recipe operations

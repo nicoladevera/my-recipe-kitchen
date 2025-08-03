@@ -26,6 +26,16 @@ export default function AuthPage() {
   const [, setLocation] = useLocation();
   const [activeTab, setActiveTab] = useState("login");
 
+  const handleTabChange = (tab: string) => {
+    setActiveTab(tab);
+    // Reset forms when switching tabs to clear validation errors
+    if (tab === "login") {
+      loginForm.reset();
+    } else {
+      registerForm.reset();
+    }
+  };
+
   // Redirect if already logged in
   if (user) {
     setLocation(`/${user.username}`);
@@ -78,7 +88,7 @@ export default function AuthPage() {
               <p className="text-gray-600 text-sm">Create and share your culinary adventures</p>
             </div>
 
-            <Tabs value={activeTab} onValueChange={setActiveTab}>
+            <Tabs value={activeTab} onValueChange={handleTabChange}>
               <TabsList className="grid w-full grid-cols-2">
                 <TabsTrigger value="login">Login</TabsTrigger>
                 <TabsTrigger value="register">Register</TabsTrigger>
@@ -265,7 +275,7 @@ export default function AuthPage() {
               <p className="text-gray-600">Create and share your culinary adventures</p>
             </div>
 
-            <Tabs value={activeTab} onValueChange={setActiveTab}>
+            <Tabs value={activeTab} onValueChange={handleTabChange}>
               <TabsList className="grid w-full grid-cols-2">
                 <TabsTrigger value="login">Login</TabsTrigger>
                 <TabsTrigger value="register">Register</TabsTrigger>

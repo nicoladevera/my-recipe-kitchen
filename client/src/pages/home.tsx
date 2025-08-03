@@ -87,7 +87,7 @@ export default function Home({ recipes: propRecipes, isOwner = false, username }
         <div className="recipe-container">
           <h1>🌿 My Recipe Kitchen</h1>
           {username && (
-            <p className="text-recipe-brown-light text-sm mb-6">by <span className="font-semibold text-recipe-green">{username}</span></p>
+            <p className="text-recipe-brown-light text-sm mb-2">by <span className="font-semibold text-recipe-green">{username}</span></p>
           )}
           <p>A thoughtful collection of your favorite recipes, beautifully organized</p>
           
@@ -131,25 +131,25 @@ export default function Home({ recipes: propRecipes, isOwner = false, username }
                   <p className="text-recipe-brown-light text-lg mb-8 leading-relaxed">
                     Your personal culinary companion for creating, organizing, and sharing your favorite recipes.
                   </p>
-                  <div className="grid md:grid-cols-3 gap-6 text-center">
-                    <div className="p-4">
-                      <div className="text-3xl mb-3">📝</div>
-                      <h3 className="font-semibold text-recipe-green mb-2">Create & Organize</h3>
-                      <p className="text-sm text-recipe-brown-light">
+                  <div className="grid md:grid-cols-3 gap-8 text-center">
+                    <div className="p-6">
+                      <div className="text-3xl mb-4">📝</div>
+                      <h3 className="font-semibold text-recipe-green mb-3">Create & Organize</h3>
+                      <p className="text-sm text-recipe-brown-light leading-relaxed">
                         Build your personal recipe collection with detailed ingredients, instructions, and photos
                       </p>
                     </div>
-                    <div className="p-4">
-                      <div className="text-3xl mb-3">📸</div>
-                      <h3 className="font-semibold text-recipe-green mb-2">Track Your Cooking</h3>
-                      <p className="text-sm text-recipe-brown-light">
+                    <div className="p-6">
+                      <div className="text-3xl mb-4">📸</div>
+                      <h3 className="font-semibold text-recipe-green mb-3">Track Your Cooking</h3>
+                      <p className="text-sm text-recipe-brown-light leading-relaxed">
                         Log cooking sessions with photos, notes, and ratings to perfect your dishes over time
                       </p>
                     </div>
-                    <div className="p-4">
-                      <div className="text-3xl mb-3">🌐</div>
-                      <h3 className="font-semibold text-recipe-green mb-2">Share & Discover</h3>
-                      <p className="text-sm text-recipe-brown-light">
+                    <div className="p-6">
+                      <div className="text-3xl mb-4">🌐</div>
+                      <h3 className="font-semibold text-recipe-green mb-3">Share & Discover</h3>
+                      <p className="text-sm text-recipe-brown-light leading-relaxed">
                         Share your recipes publicly and explore collections from other passionate cooks
                       </p>
                     </div>

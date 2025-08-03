@@ -444,6 +444,51 @@
     gap: 12px;
   }
 
+  .cooking-log-entry {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding: 12px 0;
+    border-bottom: 1px solid rgba(212, 196, 160, 0.2);
+  }
+
+  .cooking-log-entry:last-child {
+    border-bottom: none;
+  }
+
+  .cooking-log-content {
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+    flex: 1;
+  }
+
+  .cooking-log-content > div:first-child {
+    min-width: 120px;
+    flex-shrink: 0;
+  }
+
+  .cooking-log-notes {
+    flex: 1;
+    margin-top: 2px;
+  }
+
+  .cooking-log-delete {
+    opacity: 0.6;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 4px;
+    color: #666;
+    font-size: 14px;
+    line-height: 1;
+  }
+
+  .cooking-log-delete:hover {
+    opacity: 1;
+    color: #999;
+  }
+
   .mobile-delete {
     display: none;
   }
