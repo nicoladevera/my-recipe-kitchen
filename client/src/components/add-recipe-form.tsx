@@ -11,8 +11,8 @@ export function AddRecipeForm({ onSuccess }: AddRecipeFormProps) {
   const [formData, setFormData] = useState({
     name: "",
     heroIngredient: "",
-    cookTime: "",
-    servings: "",
+    cookTime: 0,
+    servings: 0,
     ingredients: "",
     instructions: "",
   });
@@ -62,8 +62,8 @@ export function AddRecipeForm({ onSuccess }: AddRecipeFormProps) {
     const formDataToSend = new FormData();
     formDataToSend.append("name", formData.name);
     formDataToSend.append("heroIngredient", formData.heroIngredient);
-    formDataToSend.append("cookTime", formData.cookTime);
-    formDataToSend.append("servings", formData.servings);
+    formDataToSend.append("cookTime", formData.cookTime.toString());
+    formDataToSend.append("servings", formData.servings.toString());
     formDataToSend.append("ingredients", formData.ingredients);
     formDataToSend.append("instructions", formData.instructions);
     
@@ -90,8 +90,8 @@ export function AddRecipeForm({ onSuccess }: AddRecipeFormProps) {
     setFormData({
       name: "",
       heroIngredient: "",
-      cookTime: "",
-      servings: "",
+      cookTime: 0,
+      servings: 0,
       ingredients: "",
       instructions: "",
     });
@@ -151,8 +151,8 @@ export function AddRecipeForm({ onSuccess }: AddRecipeFormProps) {
             required
             min="1"
             placeholder="30"
-            value={formData.cookTime}
-            onChange={(e) => setFormData(prev => ({ ...prev, cookTime: e.target.value }))}
+            value={formData.cookTime || ""}
+            onChange={(e) => setFormData(prev => ({ ...prev, cookTime: parseInt(e.target.value) || 0 }))}
           />
         </div>
 
@@ -165,8 +165,8 @@ export function AddRecipeForm({ onSuccess }: AddRecipeFormProps) {
             required
             min="1"
             placeholder="4"
-            value={formData.servings}
-            onChange={(e) => setFormData(prev => ({ ...prev, servings: e.target.value }))}
+            value={formData.servings || ""}
+            onChange={(e) => setFormData(prev => ({ ...prev, servings: parseInt(e.target.value) || 0 }))}
           />
         </div>
 

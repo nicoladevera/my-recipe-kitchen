@@ -106,12 +106,21 @@ export function setupAuth(app: Express) {
   });
 
   // Login endpoint
-  app.post("/api/login", passport.authenticate("local"), (req, res) => {
-    if (req.user) {
-      res.json({ id: req.user.id, username: req.user.username, email: req.user.email, displayName: req.user.displayName });
-    } else {
-      res.status(401).json({ error: "Authentication failed" });
-    }
+  app.post("/api/login", (req, res, next) => {
+    passport.authenticate("local", (err, user, info) => {
+      if (err) {
+        return next(err);
+      }
+      if (!user) {
+        return res.status(401).json({ error: "Invalid credentials" });
+      }  
+      req.logIn(user, (err) => {
+        if (err) {
+          return next(err);
+        }
+        return res.json({ id: user.id, username: user.username, email: user.email, displayName: user.displayName });
+      });
+    })(req, res, next);
   });
 
   // Logout endpoint

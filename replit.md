@@ -10,16 +10,19 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes (August 2025)
 
+- **Login Authentication Fixed**: Resolved persistent 401 login errors by implementing proper Passport.js custom callback authentication flow with detailed error handling
+- **Recipe Photos Updated**: Replaced Chicken Parmesan and Beef Stroganoff with new high-quality Pexels photos that better represent the actual dishes
+- **Form Input Bug Fixed**: Resolved numeric field display issues in Add Recipe form where cookTime and servings showed incorrect values due to improper string/number handling
+- **Mobile Layout Spacing**: Improved mobile spacing consistency in landing page blurb section by reducing gaps between feature sections
+- **User Page Spacing**: Added proper spacing between username display and description text for better visual hierarchy
+- **Cooking Log Display**: Enhanced cooking log layout with reduced spacing between date and notes on desktop for cleaner appearance
+- **Password Change Functionality**: Implemented complete backend password update system with proper current password verification and secure hashing
+- **Form Reset Behavior**: Fixed authentication form validation by implementing proper form reset when switching between login/register tabs
 - **Recipe Creation Fixed**: Resolved form validation issues by implementing proper server-side parsing of numeric fields (cookTime, servings) from FormData strings
 - **Cooking Log Modal**: Replaced simple prompts with professional modal interface featuring star ratings, notes, and photo uploads that replace recipe photos
 - **Smart Recipe Sorting**: Implemented timestamp-based sorting where recipes with recent cooking activity appear at top, with precise time-based ordering for same-day logs
-- **Instructions Display**: Updated to show clean step-by-step format without automatic numbering, with improved placeholder text guidance
-- **Timestamp Precision**: Enhanced cooking logs to store full ISO timestamps instead of just dates for accurate same-day sorting
-- **Landing Page Content**: Added missing Chicken Parmesan and Beef Stroganoff recipes with SVG-generated images, updated welcome text to "My Recipe Kitchen", removed lengthy description for cleaner mobile layout
 - **Authentication UI Improvements**: Added password visibility toggle (eye icon) to all password fields for better UX
 - **Bio Field Removal**: Removed bio fields from registration, authentication, and settings per user request - can be re-added later if needed
-- **Personal Page Styling**: Enhanced username display with green color and improved spacing between elements
-- **Settings Page**: Added comprehensive settings page with profile updates and password change functionality (password change backend pending implementation)
 
 ## System Architecture
 
