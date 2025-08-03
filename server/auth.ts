@@ -80,7 +80,7 @@ export function setupAuth(app: Express) {
   // Register endpoint
   app.post("/api/register", async (req, res, next) => {
     try {
-      const { username, email, password, displayName, bio } = req.body;
+      const { username, email, password, displayName } = req.body;
       
       // Check if username or email already exists
       const existingUser = await storage.getUserByUsername(username) || await storage.getUserByEmail(email);
@@ -94,7 +94,6 @@ export function setupAuth(app: Express) {
         email,
         password: hashedPassword,
         displayName,
-        bio,
       });
 
       req.login(user, (err) => {

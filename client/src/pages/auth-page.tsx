@@ -41,7 +41,7 @@ export default function AuthPage() {
   });
 
   const registerForm = useForm<RegisterForm>({
-    resolver: zodResolver(insertUserSchema.omit({ bio: true })),
+    resolver: zodResolver(insertUserSchema),
     defaultValues: {
       username: "",
       email: "",
@@ -204,15 +204,7 @@ export default function AuthPage() {
                           </p>
                         )}
                       </div>
-                      <div>
-                        <Label htmlFor="register-bio" className="text-sm">Bio (optional)</Label>
-                        <Input
-                          id="register-bio"
-                          {...registerForm.register("bio")}
-                          placeholder="Tell us about your cooking style"
-                          className="mt-1"
-                        />
-                      </div>
+
                       <Button 
                         type="submit" 
                         className="w-full"
@@ -304,9 +296,8 @@ export default function AuthPage() {
                       </div>
                       <div>
                         <Label htmlFor="desktop-login-password">Password</Label>
-                        <Input
+                        <PasswordInput
                           id="desktop-login-password"
-                          type="password"
                           {...loginForm.register("password")}
                           placeholder="Enter your password"
                         />
@@ -383,9 +374,8 @@ export default function AuthPage() {
                       </div>
                       <div>
                         <Label htmlFor="desktop-register-password">Password</Label>
-                        <Input
+                        <PasswordInput
                           id="desktop-register-password"
-                          type="password"
                           {...registerForm.register("password")}
                           placeholder="Create a strong password"
                         />
@@ -395,14 +385,7 @@ export default function AuthPage() {
                           </p>
                         )}
                       </div>
-                      <div>
-                        <Label htmlFor="desktop-register-bio">Bio (optional)</Label>
-                        <Input
-                          id="desktop-register-bio"
-                          {...registerForm.register("bio")}
-                          placeholder="Tell us about your cooking style"
-                        />
-                      </div>
+
                       <Button 
                         type="submit" 
                         className="w-full"

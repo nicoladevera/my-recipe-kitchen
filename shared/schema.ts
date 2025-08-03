@@ -56,6 +56,7 @@ export const heroIngredientOptions = [
 
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
+  bio: true,
   createdAt: true,
   updatedAt: true,
   passwordResetToken: true,
