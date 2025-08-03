@@ -132,18 +132,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const recipeData = insertRecipeSchema.parse(formData);
       
-      // If photo was uploaded, store it in Object Storage
+      // If photo was uploaded, try Object Storage first, fallback to local storage
       if (req.file) {
-        recipeData.photo = await uploadToObjectStorage(req.file);
+        try {
+          recipeData.photo = await uploadToObjectStorage(req.file);
+          console.log('Successfully uploaded to Object Storage:', recipeData.photo);
+        } catch (objectStorageError) {
+          console.error('Object Storage upload failed, falling back to local storage:', objectStorageError);
+          recipeData.photo = await uploadToMemory(req.file);
+          console.log('Fallback upload successful:', recipeData.photo);
+        }
       }
 
       const recipe = await storage.createRecipe(recipeData, req.user!.id);
       res.status(201).json(recipe);
     } catch (error) {
+      console.error('Recipe creation error:', error);
       if (error instanceof z.ZodError) {
         res.status(400).json({ error: "Invalid recipe data", details: error.errors });
       } else {
-        res.status(500).json({ error: "Failed to create recipe" });
+        res.status(500).json({ error: "Failed to create recipe", details: error instanceof Error ? error.message : "Unknown error" });
       }
     }
   });
@@ -158,8 +166,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Get the existing recipe to check for old photo
         const existingRecipe = await storage.getRecipe(req.params.id);
         
-        // Upload new photo to Object Storage
-        updates.photo = await uploadToObjectStorage(req.file);
+        // Upload new photo - try Object Storage first, fallback to local storage
+        try {
+          updates.photo = await uploadToObjectStorage(req.file);
+          console.log('Successfully uploaded to Object Storage:', updates.photo);
+        } catch (objectStorageError) {
+          console.error('Object Storage upload failed, falling back to local storage:', objectStorageError);
+          updates.photo = await uploadToMemory(req.file);
+          console.log('Fallback upload successful:', updates.photo);
+        }
         
         // Delete old photo from Object Storage if it exists (not from external URLs or uploads)
         if (existingRecipe?.photo && existingRecipe.photo.startsWith('/objects/')) {
@@ -173,10 +188,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       res.json(recipe);
     } catch (error) {
+      console.error('Recipe update error:', error);
       if (error instanceof z.ZodError) {
         res.status(400).json({ error: "Invalid update data", details: error.errors });
       } else {
-        res.status(500).json({ error: "Failed to update recipe" });
+        res.status(500).json({ error: "Failed to update recipe", details: error instanceof Error ? error.message : "Unknown error" });
       }
     }
   });
@@ -223,8 +239,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Get the existing recipe to check for old photo
         const existingRecipe = await storage.getRecipe(req.params.id);
         
-        // Upload new photo to Object Storage
-        const photoUrl = await uploadToObjectStorage(req.file);
+        // Upload new photo - try Object Storage first, fallback to local storage
+        let photoUrl;
+        try {
+          photoUrl = await uploadToObjectStorage(req.file);
+          console.log('Successfully uploaded to Object Storage:', photoUrl);
+        } catch (objectStorageError) {
+          console.error('Object Storage upload failed, falling back to local storage:', objectStorageError);
+          photoUrl = await uploadToMemory(req.file);
+          console.log('Fallback upload successful:', photoUrl);
+        }
         
         // Delete old photo from Object Storage if it exists (not from external URLs or uploads)
         if (existingRecipe?.photo && existingRecipe.photo.startsWith('/objects/')) {

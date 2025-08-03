@@ -11,9 +11,11 @@ async function initializeObjectStorage() {
       const { Client } = await import('@replit/object-storage');
       client = new Client();
       objectStorageAvailable = true;
+      console.log('Object Storage initialized successfully');
     } catch (error) {
-      console.warn('Object Storage initialization failed:', error);
+      console.error('Object Storage initialization failed:', error);
       objectStorageAvailable = false;
+      throw error; // Re-throw to make the error visible
     }
   }
   return client;
@@ -40,20 +42,23 @@ export const uploadToMemory = multer({
 
 // Upload file to Replit Object Storage
 export async function uploadToObjectStorage(file: Express.Multer.File): Promise<string> {
-  const storageClient = await initializeObjectStorage();
-  if (!storageClient) {
-    throw new Error('Object Storage is not available');
-  }
-  
   try {
+    const storageClient = await initializeObjectStorage();
+    if (!storageClient) {
+      throw new Error('Object Storage is not available');
+    }
+    
     const fileName = `recipe-photos/${nanoid()}-${file.originalname}`;
+    console.log(`Uploading file to Object Storage: ${fileName}`);
     
     // Upload the file buffer to Replit Object Storage
     await storageClient.uploadFromBytes(fileName, file.buffer);
+    console.log(`Successfully uploaded: ${fileName}`);
     
     // Return the path that can be served via our API
     return `/objects/${fileName}`;
   } catch (error) {
+    console.error('Upload to Object Storage failed:', error);
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     throw new Error(`Failed to upload to Object Storage: ${errorMessage}`);
   }

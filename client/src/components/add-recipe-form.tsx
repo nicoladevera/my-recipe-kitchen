@@ -31,7 +31,10 @@ export function AddRecipeForm({ onSuccess }: AddRecipeFormProps) {
         body: data,
       });
       if (!response.ok) {
-        throw new Error("Failed to create recipe");
+        const errorData = await response.json().catch(() => ({}));
+        const errorMessage = errorData.details || errorData.error || "Failed to create recipe";
+        console.error('Recipe creation failed:', response.status, errorData);
+        throw new Error(errorMessage);
       }
       return response.json();
     },
