@@ -58,11 +58,14 @@ export default function AuthPage() {
     return null;
   }
 
-  const onLogin = (data: LoginForm) => {
-    // Get current form values directly to ensure mobile compatibility
-    const formValues = loginForm.getValues();
-    const username = formValues.username?.trim() || data.username?.trim();
-    const password = formValues.password?.trim() || data.password?.trim();
+  const onLogin = (e: React.FormEvent) => {
+    e.preventDefault();
+    const formData = new FormData(e.target as HTMLFormElement);
+    const username = (formData.get('username') as string)?.trim();
+    const password = (formData.get('password') as string)?.trim();
+
+    // Clear previous errors
+    loginForm.clearErrors();
 
     if (!username) {
       loginForm.setError("username", { message: "Username is required" });
@@ -81,13 +84,16 @@ export default function AuthPage() {
     });
   };
 
-  const onRegister = (data: RegisterForm) => {
-    // Get current form values directly to ensure mobile compatibility
-    const formValues = registerForm.getValues();
-    const username = formValues.username?.trim() || data.username?.trim();
-    const email = formValues.email?.trim() || data.email?.trim();
-    const password = formValues.password?.trim() || data.password?.trim();
-    const displayName = formValues.displayName?.trim() || data.displayName?.trim();
+  const onRegister = (e: React.FormEvent) => {
+    e.preventDefault();
+    const formData = new FormData(e.target as HTMLFormElement);
+    const username = (formData.get('username') as string)?.trim();
+    const email = (formData.get('email') as string)?.trim();
+    const password = (formData.get('password') as string)?.trim();
+    const displayName = (formData.get('displayName') as string)?.trim();
+
+    // Clear previous errors
+    registerForm.clearErrors();
 
     if (!username) {
       registerForm.setError("username", { message: "Username is required" });
@@ -141,12 +147,12 @@ export default function AuthPage() {
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <form onSubmit={loginForm.handleSubmit(onLogin)} className="space-y-4">
+                    <form onSubmit={onLogin} className="space-y-4">
                       <div>
                         <Label htmlFor="login-username" className="text-sm">Username</Label>
                         <Input
                           id="login-username"
-                          {...loginForm.register("username")}
+                          name="username"
                           placeholder="Enter your username"
                           className="mt-1"
                         />
@@ -160,7 +166,7 @@ export default function AuthPage() {
                         <Label htmlFor="login-password" className="text-sm">Password</Label>
                         <PasswordInput
                           id="login-password"
-                          {...loginForm.register("password")}
+                          name="password"
                           placeholder="Enter your password"
                           className="mt-1"
                         />
@@ -194,12 +200,12 @@ export default function AuthPage() {
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <form onSubmit={registerForm.handleSubmit(onRegister)} className="space-y-4">
+                    <form onSubmit={onRegister} className="space-y-4">
                       <div>
                         <Label htmlFor="register-username" className="text-sm">Username</Label>
                         <Input
                           id="register-username"
-                          {...registerForm.register("username")}
+                          name="username"
                           placeholder="Choose a username"
                           className="mt-1"
                         />
@@ -213,7 +219,7 @@ export default function AuthPage() {
                         <Label htmlFor="register-displayName" className="text-sm">Display Name</Label>
                         <Input
                           id="register-displayName"
-                          {...registerForm.register("displayName")}
+                          name="displayName"
                           placeholder="Your full name"
                           className="mt-1"
                         />
@@ -227,8 +233,8 @@ export default function AuthPage() {
                         <Label htmlFor="register-email" className="text-sm">Email</Label>
                         <Input
                           id="register-email"
+                          name="email"
                           type="email"
-                          {...registerForm.register("email")}
                           placeholder="your@email.com"
                           className="mt-1"
                         />
@@ -242,7 +248,7 @@ export default function AuthPage() {
                         <Label htmlFor="register-password" className="text-sm">Password</Label>
                         <PasswordInput
                           id="register-password"
-                          {...registerForm.register("password")}
+                          name="password"
                           placeholder="Create a strong password"
                           className="mt-1"
                         />
@@ -328,12 +334,12 @@ export default function AuthPage() {
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <form onSubmit={loginForm.handleSubmit(onLogin)} className="space-y-4">
+                    <form onSubmit={onLogin} className="space-y-4">
                       <div>
                         <Label htmlFor="desktop-login-username">Username</Label>
                         <Input
                           id="desktop-login-username"
-                          {...loginForm.register("username")}
+                          name="username"
                           placeholder="Enter your username"
                         />
                         {loginForm.formState.errors.username && (
@@ -346,7 +352,7 @@ export default function AuthPage() {
                         <Label htmlFor="desktop-login-password">Password</Label>
                         <PasswordInput
                           id="desktop-login-password"
-                          {...loginForm.register("password")}
+                          name="password"
                           placeholder="Enter your password"
                         />
                         {loginForm.formState.errors.password && (
@@ -379,12 +385,12 @@ export default function AuthPage() {
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <form onSubmit={registerForm.handleSubmit(onRegister)} className="space-y-4">
+                    <form onSubmit={onRegister} className="space-y-4">
                       <div>
                         <Label htmlFor="desktop-register-username">Username</Label>
                         <Input
                           id="desktop-register-username"
-                          {...registerForm.register("username")}
+                          name="username"
                           placeholder="Choose a username"
                         />
                         {registerForm.formState.errors.username && (
@@ -397,7 +403,7 @@ export default function AuthPage() {
                         <Label htmlFor="desktop-register-displayName">Display Name</Label>
                         <Input
                           id="desktop-register-displayName"
-                          {...registerForm.register("displayName")}
+                          name="displayName"
                           placeholder="Your full name"
                         />
                         {registerForm.formState.errors.displayName && (
@@ -410,8 +416,8 @@ export default function AuthPage() {
                         <Label htmlFor="desktop-register-email">Email</Label>
                         <Input
                           id="desktop-register-email"
+                          name="email"
                           type="email"
-                          {...registerForm.register("email")}
                           placeholder="your@email.com"
                         />
                         {registerForm.formState.errors.email && (
@@ -424,7 +430,7 @@ export default function AuthPage() {
                         <Label htmlFor="desktop-register-password">Password</Label>
                         <PasswordInput
                           id="desktop-register-password"
-                          {...registerForm.register("password")}
+                          name="password"
                           placeholder="Create a strong password"
                         />
                         {registerForm.formState.errors.password && (
