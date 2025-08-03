@@ -37,6 +37,7 @@ export function AddRecipeForm({ onSuccess }: AddRecipeFormProps) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/recipes"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/users"] });
       setShowSuccess(true);
       setTimeout(() => setShowSuccess(false), 3000);
       resetForm();

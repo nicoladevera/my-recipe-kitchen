@@ -3,14 +3,28 @@ import { RecipeCard } from "@/components/recipe-card";
 import { AddRecipeForm } from "@/components/add-recipe-form";
 import { RecipeFilters } from "@/components/recipe-filters";
 import { useRecipes } from "@/hooks/use-recipes";
+import { useAuth } from "@/hooks/use-auth";
+import { Recipe } from "@shared/schema";
+import { Button } from "@/components/ui/button";
+import { useLocation } from "wouter";
 
-export default function Home() {
+interface HomeProps {
+  recipes?: Recipe[];
+  isOwner?: boolean;
+  username?: string;
+}
+
+export default function Home({ recipes: propRecipes, isOwner = false, username }: HomeProps) {
   const [activeSection, setActiveSection] = useState<"my-recipes" | "add-recipe">("my-recipes");
   const [searchTerm, setSearchTerm] = useState("");
   const [filterRating, setFilterRating] = useState("");
   const [filterTime, setFilterTime] = useState("");
+  const { user, logoutMutation } = useAuth();
+  const [, setLocation] = useLocation();
 
-  const { data: recipes = [], isLoading } = useRecipes();
+  // Use prop recipes if provided (for user pages), otherwise fetch all recipes (for home page)
+  const { data: fetchedRecipes = [], isLoading } = useRecipes(propRecipes ? undefined : true);
+  const recipes = propRecipes || fetchedRecipes;
 
   // Sort recipes based on cooking logs and creation date
   const sortedRecipes = [...recipes].sort((a, b) => {
@@ -59,12 +73,46 @@ export default function Home() {
     return matchesSearch && matchesRating && matchesTime;
   });
 
+  const handleLogout = () => {
+    logoutMutation.mutate(undefined, {
+      onSuccess: () => {
+        setLocation("/");
+      },
+    });
+  };
+
   return (
     <div className="min-h-screen">
       <div className="recipe-header">
         <div className="recipe-container">
           <h1>🌿 My Recipe Kitchen</h1>
+          {username && (
+            <p className="text-recipe-brown-light text-sm mb-2">by {username}</p>
+          )}
           <p>A thoughtful collection of your favorite recipes, beautifully organized</p>
+          
+          {/* Auth controls */}
+          <div className="mt-4 flex justify-center gap-4">
+            {user ? (
+              <div className="flex items-center gap-4">
+                {!isOwner && (
+                  <Button
+                    onClick={() => setLocation(`/${user.username}`)}
+                    variant="outline"
+                  >
+                    My Recipes
+                  </Button>
+                )}
+                <Button onClick={handleLogout} variant="outline">
+                  Logout
+                </Button>
+              </div>
+            ) : (
+              <Button onClick={() => setLocation("/auth")}>
+                Sign In / Register
+              </Button>
+            )}
+          </div>
         </div>
       </div>
 
@@ -74,19 +122,21 @@ export default function Home() {
             className={`recipe-nav-btn ${activeSection === "my-recipes" ? "active" : ""}`}
             onClick={() => setActiveSection("my-recipes")}
           >
-            My Recipes
+            {username ? `${username}'s Recipes` : "Recipes"}
           </button>
-          <button
-            className={`recipe-nav-btn ${activeSection === "add-recipe" ? "active" : ""}`}
-            onClick={() => setActiveSection("add-recipe")}
-          >
-            Add Recipe
-          </button>
+          {isOwner && (
+            <button
+              className={`recipe-nav-btn ${activeSection === "add-recipe" ? "active" : ""}`}
+              onClick={() => setActiveSection("add-recipe")}
+            >
+              Add Recipe
+            </button>
+          )}
         </div>
 
-        {activeSection === "my-recipes" ? (
+{activeSection === "my-recipes" ? (
           <div className="recipe-section">
-            <h2>My Recipe Collection</h2>
+            <h2>{username ? `${username}'s Recipe Collection` : "Recipe Collection"}</h2>
             
             <RecipeFilters
               searchTerm={searchTerm}
@@ -116,17 +166,17 @@ export default function Home() {
             ) : (
               <div>
                 {filteredRecipes.map(recipe => (
-                  <RecipeCard key={recipe.id} recipe={recipe} />
+                  <RecipeCard key={recipe.id} recipe={recipe} isOwner={isOwner} />
                 ))}
               </div>
             )}
           </div>
-        ) : (
+        ) : isOwner ? (
           <div className="recipe-section">
             <h2>Add New Recipe</h2>
             <AddRecipeForm onSuccess={() => setActiveSection("my-recipes")} />
           </div>
-        )}
+        ) : null}
       </div>
     </div>
   );

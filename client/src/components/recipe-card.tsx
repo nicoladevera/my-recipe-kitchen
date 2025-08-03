@@ -8,9 +8,10 @@ import type { Recipe } from "@shared/schema";
 
 interface RecipeCardProps {
   recipe: Recipe;
+  isOwner?: boolean;
 }
 
-export function RecipeCard({ recipe }: RecipeCardProps) {
+export function RecipeCard({ recipe, isOwner = false }: RecipeCardProps) {
   const [showCookingLog, setShowCookingLog] = useState(false);
   const [showLogModal, setShowLogModal] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -25,6 +26,7 @@ export function RecipeCard({ recipe }: RecipeCardProps) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/recipes"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/users"] });
       toast({
         title: "Recipe deleted",
         description: "Your recipe has been removed from your collection.",
@@ -45,6 +47,7 @@ export function RecipeCard({ recipe }: RecipeCardProps) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/recipes"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/users"] });
       toast({
         title: "Cooking log entry removed",
         description: "The entry has been deleted from your cooking log.",
@@ -129,21 +132,23 @@ export function RecipeCard({ recipe }: RecipeCardProps) {
         </div>
       </div>
       
-      <div className="recipe-actions mt-5">
-        <button 
-          className="recipe-btn"
-          onClick={() => setShowLogModal(true)}
-        >
-          Log Cooking Session
-        </button>
-        <button 
-          className="delete-btn desktop-delete"
-          onClick={handleDelete}
-          disabled={deleteMutation.isPending}
-        >
-          {deleteMutation.isPending ? "Deleting..." : "Delete"}
-        </button>
-      </div>
+      {isOwner && (
+        <div className="recipe-actions mt-5">
+          <button 
+            className="recipe-btn"
+            onClick={() => setShowLogModal(true)}
+          >
+            Log Cooking Session
+          </button>
+          <button 
+            className="delete-btn desktop-delete"
+            onClick={handleDelete}
+            disabled={deleteMutation.isPending}
+          >
+            {deleteMutation.isPending ? "Deleting..." : "Delete"}
+          </button>
+        </div>
+      )}
 
       {(recipe.cookingLog && recipe.cookingLog.length > 0) && (
         <div className="cooking-log">
@@ -175,56 +180,66 @@ export function RecipeCard({ recipe }: RecipeCardProps) {
                 </div>
                 <span className="text-gray-600 cooking-log-notes">{log.notes}</span>
               </div>
-              <button
-                onClick={() => handleRemoveLog(index)}
-                className="cooking-log-delete"
-                disabled={removeLogMutation.isPending}
-                title="Remove this cooking log entry"
-              >
-                ✕
-              </button>
+              {isOwner && (
+                <button
+                  onClick={() => handleRemoveLog(index)}
+                  className="cooking-log-delete"
+                  disabled={removeLogMutation.isPending}
+                  title="Remove this cooking log entry"
+                >
+                  ✕
+                </button>
+              )}
             </div>
           ))}
         </div>
       )}
 
-      <button 
-        className="delete-btn mobile-delete"
-        onClick={handleDelete}
-        disabled={deleteMutation.isPending}
-      >
-        {deleteMutation.isPending ? "Deleting..." : "Delete"}
-      </button>
+      {isOwner && (
+        <button 
+          className="delete-btn mobile-delete"
+          onClick={handleDelete}
+          disabled={deleteMutation.isPending}
+        >
+          {deleteMutation.isPending ? "Deleting..." : "Delete"}
+        </button>
+      )}
 
-      <CookingLogModal
-        isOpen={showLogModal}
-        onClose={() => setShowLogModal(false)}
-        recipeId={recipe.id}
-        recipeName={recipe.name}
-      />
+      {isOwner && (
+        <CookingLogModal
+          isOpen={showLogModal}
+          onClose={() => setShowLogModal(false)}
+          recipeId={recipe.id}
+          recipeName={recipe.name}
+        />
+      )}
 
-      <ConfirmationDialog
-        isOpen={showDeleteConfirm}
-        onClose={() => setShowDeleteConfirm(false)}
-        onConfirm={confirmDelete}
-        title="Delete Recipe"
-        message={`Are you sure you want to delete "${recipe.name}"? This action cannot be undone.`}
-        confirmText="Delete Recipe"
-        isLoading={deleteMutation.isPending}
-      />
+      {isOwner && (
+        <>
+          <ConfirmationDialog
+            isOpen={showDeleteConfirm}
+            onClose={() => setShowDeleteConfirm(false)}
+            onConfirm={confirmDelete}
+            title="Delete Recipe"
+            message={`Are you sure you want to delete "${recipe.name}"? This action cannot be undone.`}
+            confirmText="Delete Recipe"
+            isLoading={deleteMutation.isPending}
+          />
 
-      <ConfirmationDialog
-        isOpen={showLogDeleteConfirm}
-        onClose={() => {
-          setShowLogDeleteConfirm(false);
-          setLogToDelete(null);
-        }}
-        onConfirm={confirmRemoveLog}
-        title="Remove Cooking Log"
-        message="Are you sure you want to remove this cooking log entry? This action cannot be undone."
-        confirmText="Remove Entry"
-        isLoading={removeLogMutation.isPending}
-      />
+          <ConfirmationDialog
+            isOpen={showLogDeleteConfirm}
+            onClose={() => {
+              setShowLogDeleteConfirm(false);
+              setLogToDelete(null);
+            }}
+            onConfirm={confirmRemoveLog}
+            title="Remove Cooking Log"
+            message="Are you sure you want to remove this cooking log entry? This action cannot be undone."
+            confirmText="Remove Entry"
+            isLoading={removeLogMutation.isPending}
+          />
+        </>
+      )}
     </div>
   );
 }

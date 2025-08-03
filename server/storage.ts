@@ -1,20 +1,66 @@
-import { type Recipe, type InsertRecipe, type CookingLogEntry, recipes } from "@shared/schema";
+import { type Recipe, type InsertRecipe, type CookingLogEntry, type User, type InsertUser, recipes, users } from "@shared/schema";
 import { db } from "./db";
-import { eq } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 
 export interface IStorage {
-  getRecipes(): Promise<Recipe[]>;
+  // User operations
+  getUser(id: string): Promise<User | undefined>;
+  getUserByUsername(username: string): Promise<User | undefined>;
+  getUserByEmail(email: string): Promise<User | undefined>;
+  createUser(user: InsertUser): Promise<User>;
+  updateUser(id: string, updates: Partial<InsertUser>): Promise<User | undefined>;
+  
+  // Recipe operations
+  getRecipes(userId?: string): Promise<Recipe[]>;
   getRecipe(id: string): Promise<Recipe | undefined>;
-  createRecipe(recipe: InsertRecipe): Promise<Recipe>;
-  updateRecipe(id: string, updates: Partial<InsertRecipe>): Promise<Recipe | undefined>;
-  deleteRecipe(id: string): Promise<boolean>;
-  addCookingLog(id: string, logEntry: CookingLogEntry): Promise<Recipe | undefined>;
-  removeCookingLog(id: string, logIndex: number): Promise<Recipe | undefined>;
+  createRecipe(recipe: InsertRecipe, userId: string): Promise<Recipe>;
+  updateRecipe(id: string, updates: Partial<InsertRecipe>, userId: string): Promise<Recipe | undefined>;
+  deleteRecipe(id: string, userId: string): Promise<boolean>;
+  addCookingLog(id: string, logEntry: CookingLogEntry, userId: string): Promise<Recipe | undefined>;
+  removeCookingLog(id: string, logIndex: number, userId: string): Promise<Recipe | undefined>;
 }
 
 export class DatabaseStorage implements IStorage {
-  async getRecipes(): Promise<Recipe[]> {
-    const allRecipes = await db.select().from(recipes);
+  // User operations
+  async getUser(id: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.id, id));
+    return user || undefined;
+  }
+
+  async getUserByUsername(username: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.username, username));
+    return user || undefined;
+  }
+
+  async getUserByEmail(email: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.email, email));
+    return user || undefined;
+  }
+
+  async createUser(insertUser: InsertUser): Promise<User> {
+    const [user] = await db
+      .insert(users)
+      .values(insertUser)
+      .returning();
+    return user;
+  }
+
+  async updateUser(id: string, updates: Partial<InsertUser>): Promise<User | undefined> {
+    const [updatedUser] = await db
+      .update(users)
+      .set({ ...updates, updatedAt: new Date() } as any)
+      .where(eq(users.id, id))
+      .returning();
+    return updatedUser || undefined;
+  }
+
+  // Recipe operations
+  async getRecipes(userId?: string): Promise<Recipe[]> {
+    const query = userId 
+      ? db.select().from(recipes).where(eq(recipes.userId, userId))
+      : db.select().from(recipes);
+    
+    const allRecipes = await query;
     
     // Sort recipes by latest cooking activity, then by creation date
     return allRecipes.sort((a, b) => {
@@ -35,11 +81,12 @@ export class DatabaseStorage implements IStorage {
     return recipe || undefined;
   }
 
-  async createRecipe(insertRecipe: InsertRecipe): Promise<Recipe> {
+  async createRecipe(insertRecipe: InsertRecipe, userId: string): Promise<Recipe> {
     const [recipe] = await db
       .insert(recipes)
       .values({
         ...insertRecipe,
+        userId,
         rating: 0,
         cookingLog: [],
       })
@@ -47,23 +94,25 @@ export class DatabaseStorage implements IStorage {
     return recipe;
   }
 
-  async updateRecipe(id: string, updates: Partial<InsertRecipe>): Promise<Recipe | undefined> {
+  async updateRecipe(id: string, updates: Partial<InsertRecipe>, userId: string): Promise<Recipe | undefined> {
     const [updatedRecipe] = await db
       .update(recipes)
       .set(updates as any)
-      .where(eq(recipes.id, id))
+      .where(and(eq(recipes.id, id), eq(recipes.userId, userId)))
       .returning();
     return updatedRecipe || undefined;
   }
 
-  async deleteRecipe(id: string): Promise<boolean> {
-    const result = await db.delete(recipes).where(eq(recipes.id, id));
+  async deleteRecipe(id: string, userId: string): Promise<boolean> {
+    const result = await db
+      .delete(recipes)
+      .where(and(eq(recipes.id, id), eq(recipes.userId, userId)));
     return (result.rowCount || 0) > 0;
   }
 
-  async addCookingLog(id: string, logEntry: CookingLogEntry): Promise<Recipe | undefined> {
+  async addCookingLog(id: string, logEntry: CookingLogEntry, userId: string): Promise<Recipe | undefined> {
     const recipe = await this.getRecipe(id);
-    if (!recipe) return undefined;
+    if (!recipe || recipe.userId !== userId) return undefined;
 
     const currentLog = recipe.cookingLog || [];
     const updatedLog = [logEntry, ...currentLog];
@@ -78,15 +127,15 @@ export class DatabaseStorage implements IStorage {
         cookingLog: updatedLog,
         rating: averageRating
       })
-      .where(eq(recipes.id, id))
+      .where(and(eq(recipes.id, id), eq(recipes.userId, userId)))
       .returning();
     
     return updatedRecipe || undefined;
   }
 
-  async removeCookingLog(id: string, logIndex: number): Promise<Recipe | undefined> {
+  async removeCookingLog(id: string, logIndex: number, userId: string): Promise<Recipe | undefined> {
     const recipe = await this.getRecipe(id);
-    if (!recipe || !recipe.cookingLog) return undefined;
+    if (!recipe || recipe.userId !== userId || !recipe.cookingLog) return undefined;
 
     const currentLog = [...recipe.cookingLog];
     if (logIndex < 0 || logIndex >= currentLog.length) return undefined;
@@ -107,7 +156,7 @@ export class DatabaseStorage implements IStorage {
         cookingLog: currentLog,
         rating: averageRating
       })
-      .where(eq(recipes.id, id))
+      .where(and(eq(recipes.id, id), eq(recipes.userId, userId)))
       .returning();
     
     return updatedRecipe || undefined;

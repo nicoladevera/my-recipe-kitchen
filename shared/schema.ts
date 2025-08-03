@@ -2,9 +2,24 @@ import { sql } from "drizzle-orm";
 import { pgTable, text, varchar, integer, timestamp, jsonb } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
+import { relations } from "drizzle-orm";
+
+export const users = pgTable("users", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  username: varchar("username", { length: 50 }).notNull().unique(),
+  email: text("email").notNull().unique(),
+  password: text("password").notNull(),
+  displayName: text("display_name"),
+  bio: text("bio"),
+  passwordResetToken: text("password_reset_token"),
+  passwordResetExpires: timestamp("password_reset_expires"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
 
 export const recipes = pgTable("recipes", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   name: text("name").notNull(),
   heroIngredient: text("hero_ingredient").notNull(),
   cookTime: integer("cook_time").notNull(),
@@ -17,6 +32,17 @@ export const recipes = pgTable("recipes", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+export const usersRelations = relations(users, ({ many }) => ({
+  recipes: many(recipes),
+}));
+
+export const recipesRelations = relations(recipes, ({ one }) => ({
+  user: one(users, {
+    fields: [recipes.userId],
+    references: [users.id],
+  }),
+}));
+
 export interface CookingLogEntry {
   timestamp: string; // ISO timestamp for precise sorting
   notes: string;
@@ -28,15 +54,30 @@ export const heroIngredientOptions = [
   "Pasta", "Vegetable", "Pastry", "Dessert"
 ] as const;
 
-export const insertRecipeSchema = createInsertSchema(recipes).omit({
+export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
   createdAt: true,
-  rating: true, // Remove rating from insert schema
+  updatedAt: true,
+  passwordResetToken: true,
+  passwordResetExpires: true,
 }).extend({
-  cookTime: z.number().min(1).max(1440), // 1 minute to 24 hours
+  username: z.string().min(3).max(50).regex(/^[a-zA-Z0-9_-]+$/, "Username can only contain letters, numbers, underscores, and hyphens"),
+  email: z.string().email(),
+  password: z.string().min(8, "Password must be at least 8 characters"),
+});
+
+export const insertRecipeSchema = createInsertSchema(recipes).omit({
+  id: true,
+  userId: true,
+  createdAt: true,
+  rating: true,
+}).extend({
+  cookTime: z.number().min(1).max(1440),
   servings: z.number().min(1).max(50),
   heroIngredient: z.enum(heroIngredientOptions),
 });
 
+export type InsertUser = z.infer<typeof insertUserSchema>;
+export type User = typeof users.$inferSelect;
 export type InsertRecipe = z.infer<typeof insertRecipeSchema>;
 export type Recipe = typeof recipes.$inferSelect;

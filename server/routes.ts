@@ -1,4 +1,4 @@
-import type { Express } from "express";
+import type { Express, Request, Response, NextFunction } from "express";
 import express from "express";
 import { createServer, type Server } from "http";
 import multer from "multer";
@@ -6,6 +6,7 @@ import path from "path";
 import { storage } from "./storage";
 import { insertRecipeSchema } from "@shared/schema";
 import { z } from "zod";
+import { setupAuth } from "./auth";
 
 // Configure multer for photo uploads
 const upload = multer({
@@ -26,8 +27,51 @@ const upload = multer({
   }
 });
 
+// Middleware to check if user owns a recipe
+const requireRecipeOwnership = async (req: Request, res: Response, next: NextFunction) => {
+  if (!req.isAuthenticated()) {
+    return res.status(401).json({ error: "Authentication required" });
+  }
+  
+  const recipe = await storage.getRecipe(req.params.id);
+  if (!recipe) {
+    return res.status(404).json({ error: "Recipe not found" });
+  }
+  
+  if (recipe.userId !== req.user!.id) {
+    return res.status(403).json({ error: "Not authorized to modify this recipe" });
+  }
+  
+  next();
+};
+
+// Middleware to require authentication
+const requireAuth = (req: Request, res: Response, next: NextFunction) => {
+  if (!req.isAuthenticated()) {
+    return res.status(401).json({ error: "Authentication required" });
+  }
+  next();
+};
+
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Get all recipes
+  // Setup authentication routes
+  setupAuth(app);
+
+  // Get recipes for a specific user (public)
+  app.get("/api/users/:username/recipes", async (req, res) => {
+    try {
+      const user = await storage.getUserByUsername(req.params.username);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+      const recipes = await storage.getRecipes(user.id);
+      res.json(recipes);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch recipes" });
+    }
+  });
+
+  // Get all recipes (legacy endpoint - now returns all public recipes)
   app.get("/api/recipes", async (req, res) => {
     try {
       const recipes = await storage.getRecipes();
@@ -50,8 +94,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Create new recipe
-  app.post("/api/recipes", upload.single('photo'), async (req, res) => {
+  // Create new recipe (requires authentication)
+  app.post("/api/recipes", requireAuth, upload.single('photo'), async (req, res) => {
     try {
       // Parse numbers from form data strings
       const formData = {
@@ -67,7 +111,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         recipeData.photo = `/uploads/${req.file.filename}`;
       }
 
-      const recipe = await storage.createRecipe(recipeData);
+      const recipe = await storage.createRecipe(recipeData, req.user!.id);
       res.status(201).json(recipe);
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -78,8 +122,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Update recipe
-  app.patch("/api/recipes/:id", upload.single('photo'), async (req, res) => {
+  // Update recipe (requires ownership)
+  app.patch("/api/recipes/:id", requireRecipeOwnership, upload.single('photo'), async (req, res) => {
     try {
       const updates = insertRecipeSchema.partial().parse(req.body);
       
@@ -88,7 +132,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         updates.photo = `/uploads/${req.file.filename}`;
       }
 
-      const recipe = await storage.updateRecipe(req.params.id, updates);
+      const recipe = await storage.updateRecipe(req.params.id, updates, req.user!.id);
       if (!recipe) {
         return res.status(404).json({ error: "Recipe not found" });
       }
@@ -102,10 +146,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Delete recipe
-  app.delete("/api/recipes/:id", async (req, res) => {
+  // Delete recipe (requires ownership)
+  app.delete("/api/recipes/:id", requireRecipeOwnership, async (req, res) => {
     try {
-      const deleted = await storage.deleteRecipe(req.params.id);
+      const deleted = await storage.deleteRecipe(req.params.id, req.user!.id);
       if (!deleted) {
         return res.status(404).json({ error: "Recipe not found" });
       }
@@ -115,8 +159,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Add cooking log entry
-  app.post("/api/recipes/:id/cooking-log", async (req, res) => {
+  // Add cooking log entry (requires ownership)
+  app.post("/api/recipes/:id/cooking-log", requireRecipeOwnership, async (req, res) => {
     try {
       const { date, timestamp, notes, rating } = req.body;
       // Accept either 'timestamp' (new format) or 'date' (legacy format)
@@ -128,7 +172,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Store as timestamp for new entries, maintain backward compatibility
       const logEntry = { timestamp: logTimestamp, notes, rating };
-      const recipe = await storage.addCookingLog(req.params.id, logEntry);
+      const recipe = await storage.addCookingLog(req.params.id, logEntry, req.user!.id);
       if (!recipe) {
         return res.status(404).json({ error: "Recipe not found" });
       }
@@ -138,15 +182,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Remove cooking log entry
-  app.delete("/api/recipes/:id/cooking-log/:index", async (req, res) => {
+  // Remove cooking log entry (requires ownership)
+  app.delete("/api/recipes/:id/cooking-log/:index", requireRecipeOwnership, async (req, res) => {
     try {
       const logIndex = parseInt(req.params.index, 10);
       if (isNaN(logIndex)) {
         return res.status(400).json({ error: "Invalid log index" });
       }
 
-      const recipe = await storage.removeCookingLog(req.params.id, logIndex);
+      const recipe = await storage.removeCookingLog(req.params.id, logIndex, req.user!.id);
       if (!recipe) {
         return res.status(404).json({ error: "Recipe not found or invalid log index" });
       }

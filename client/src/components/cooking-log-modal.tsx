@@ -43,6 +43,7 @@ export function CookingLogModal({ isOpen, onClose, recipeId, recipeName }: Cooki
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/recipes"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/users"] });
       toast({
         title: "Cooking session logged",
         description: "Your cooking experience has been recorded!",
