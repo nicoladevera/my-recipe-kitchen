@@ -115,16 +115,20 @@ export function isObjectStorageConfigured(): boolean {
 }
 
 // Serve file from Object Storage
-export async function serveFromObjectStorage(fileName: string): Promise<Buffer | null> {
-  const storageClient = await initializeObjectStorage();
-  if (!storageClient) {
-    return null;
-  }
-  
+export async function serveFromObjectStorage(filePath: string): Promise<Buffer | null> {
   try {
-    return await storageClient.downloadAsBytes(fileName);
+    const storageClient = await initializeObjectStorage();
+    if (!storageClient) {
+      console.warn('Object Storage client not available');
+      return null;
+    }
+    
+    console.log(`Attempting to download file from Object Storage: ${filePath}`);
+    const buffer = await storageClient.downloadAsBytes(filePath);
+    console.log(`Successfully downloaded file: ${filePath}, size: ${buffer.length} bytes`);
+    return buffer;
   } catch (error) {
-    console.warn(`Failed to serve ${fileName} from Object Storage:`, error);
+    console.error(`Failed to serve ${filePath} from Object Storage:`, error);
     return null;
   }
 }

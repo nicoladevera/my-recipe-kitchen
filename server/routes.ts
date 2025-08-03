@@ -48,22 +48,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/objects/:path(*)', async (req, res) => {
     try {
       const objectPath = req.params.path;
+      console.log('Serving object from Object Storage:', objectPath);
+      
+      // Try to serve from Object Storage first
       const buffer = await serveFromObjectStorage(objectPath);
       
       if (!buffer) {
+        console.log('File not found in Object Storage:', objectPath);
         return res.status(404).json({ error: 'File not found' });
       }
       
+      // Determine content type based on file extension
+      const ext = objectPath.toLowerCase().split('.').pop();
+      let contentType = 'image/jpeg'; // default
+      if (ext === 'png') contentType = 'image/png';
+      else if (ext === 'webp') contentType = 'image/webp';
+      else if (ext === 'gif') contentType = 'image/gif';
+      
       // Set appropriate headers
       res.set({
-        'Content-Type': 'image/jpeg', // Default, could be enhanced to detect actual type
+        'Content-Type': contentType,
         'Cache-Control': 'public, max-age=31536000', // Cache for 1 year
+        'Content-Length': buffer.length.toString(),
       });
       
+      console.log('Successfully served object:', objectPath, 'Size:', buffer.length);
       res.send(buffer);
     } catch (error) {
       console.error('Error serving object:', error);
-      res.status(404).json({ error: 'File not found' });
+      res.status(500).json({ error: 'Internal server error' });
     }
   });
 
