@@ -29,11 +29,16 @@ export default function AuthPage() {
   const handleTabChange = (tab: string) => {
     setActiveTab(tab);
     // Reset forms when switching tabs to clear validation errors
-    if (tab === "login") {
-      loginForm.reset();
-    } else {
-      registerForm.reset();
-    }
+    loginForm.reset({
+      username: "",
+      password: ""
+    });
+    registerForm.reset({
+      username: "",
+      email: "",
+      password: "",
+      displayName: ""
+    });
   };
 
   // Redirect if already logged in
@@ -44,6 +49,7 @@ export default function AuthPage() {
 
   const loginForm = useForm<LoginForm>({
     resolver: zodResolver(loginSchema),
+    mode: "onSubmit",
     defaultValues: {
       username: "",
       password: "",
@@ -52,6 +58,7 @@ export default function AuthPage() {
 
   const registerForm = useForm<RegisterForm>({
     resolver: zodResolver(insertUserSchema),
+    mode: "onSubmit",
     defaultValues: {
       username: "",
       email: "",
@@ -63,6 +70,7 @@ export default function AuthPage() {
   const onLogin = (data: LoginForm) => {
     loginMutation.mutate(data, {
       onSuccess: (user) => {
+        loginForm.reset();
         setLocation(`/${user.username}`);
       },
     });
@@ -71,6 +79,7 @@ export default function AuthPage() {
   const onRegister = (data: RegisterForm) => {
     registerMutation.mutate(data, {
       onSuccess: (user) => {
+        registerForm.reset();
         setLocation(`/${user.username}`);
       },
     });
