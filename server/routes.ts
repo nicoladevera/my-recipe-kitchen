@@ -138,6 +138,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Remove cooking log entry
+  app.delete("/api/recipes/:id/cooking-log/:index", async (req, res) => {
+    try {
+      const logIndex = parseInt(req.params.index, 10);
+      if (isNaN(logIndex)) {
+        return res.status(400).json({ error: "Invalid log index" });
+      }
+
+      const recipe = await storage.removeCookingLog(req.params.id, logIndex);
+      if (!recipe) {
+        return res.status(404).json({ error: "Recipe not found or invalid log index" });
+      }
+      res.json(recipe);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to remove cooking log entry" });
+    }
+  });
+
   // Serve uploaded files
   app.use('/uploads', express.static('uploads'));
 

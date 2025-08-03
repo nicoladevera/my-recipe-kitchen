@@ -439,6 +439,62 @@
     display: none;
   }
 
+  .cooking-log-entry {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding: 12px 0;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+    gap: 12px;
+  }
+
+  .cooking-log-entry:last-child {
+    border-bottom: none;
+  }
+
+  .cooking-log-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    flex: 1;
+    gap: 12px;
+  }
+
+  .cooking-log-notes {
+    text-align: right;
+    max-width: 200px;
+    word-wrap: break-word;
+  }
+
+  .cooking-log-delete {
+    background: none;
+    border: none;
+    color: hsl(0, 50%, 65%);
+    cursor: pointer;
+    font-size: 14px;
+    padding: 4px 6px;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+    min-width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0.6;
+  }
+
+  .cooking-log-delete:hover {
+    background: hsl(0, 50%, 95%);
+    color: hsl(0, 50%, 45%);
+    opacity: 1;
+    transform: scale(1.1);
+  }
+
+  .cooking-log-delete:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+  }
+
   @media (max-width: 768px) {
     .recipe-container {
       padding: 0 16px;
@@ -531,6 +587,33 @@
       gap: 0.5rem !important;
       align-items: center !important;
       flex-wrap: nowrap !important;
+    }
+
+    /* Mobile cooking log layout */
+    .cooking-log-content {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 8px;
+    }
+
+    .cooking-log-notes {
+      text-align: left;
+      max-width: 100%;
+      font-size: 14px;
+    }
+
+    .cooking-log-delete {
+      position: absolute;
+      right: 0;
+      top: 8px;
+      font-size: 16px;
+      min-width: 28px;
+      height: 28px;
+    }
+
+    .cooking-log-entry {
+      position: relative;
+      padding-right: 40px;
     }
   }
 }

@@ -8,6 +8,7 @@ export interface IStorage {
   updateRecipe(id: string, updates: Partial<InsertRecipe>): Promise<Recipe | undefined>;
   deleteRecipe(id: string): Promise<boolean>;
   addCookingLog(id: string, logEntry: CookingLogEntry): Promise<Recipe | undefined>;
+  removeCookingLog(id: string, logIndex: number): Promise<Recipe | undefined>;
 }
 
 export class MemStorage implements IStorage {
@@ -127,6 +128,32 @@ export class MemStorage implements IStorage {
     const updated: Recipe = { 
       ...recipe, 
       cookingLog: updatedLog,
+      rating: averageRating
+    };
+    this.recipes.set(id, updated);
+    return updated;
+  }
+
+  async removeCookingLog(id: string, logIndex: number): Promise<Recipe | undefined> {
+    const recipe = this.recipes.get(id);
+    if (!recipe || !recipe.cookingLog) return undefined;
+
+    const currentLog = [...recipe.cookingLog];
+    if (logIndex < 0 || logIndex >= currentLog.length) return undefined;
+
+    // Remove the log entry at the specified index
+    currentLog.splice(logIndex, 1);
+    
+    // Recalculate average rating from remaining entries
+    let averageRating = 0;
+    if (currentLog.length > 0) {
+      const totalRatings = currentLog.reduce((sum, entry) => sum + entry.rating, 0);
+      averageRating = Math.round(totalRatings / currentLog.length);
+    }
+    
+    const updated: Recipe = { 
+      ...recipe, 
+      cookingLog: currentLog,
       rating: averageRating
     };
     this.recipes.set(id, updated);

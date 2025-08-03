@@ -35,9 +35,35 @@ export function RecipeCard({ recipe }: RecipeCardProps) {
     },
   });
 
+  const removeLogMutation = useMutation({
+    mutationFn: async ({ recipeId, logIndex }: { recipeId: string; logIndex: number }) => {
+      await apiRequest("DELETE", `/api/recipes/${recipeId}/cooking-log/${logIndex}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/recipes"] });
+      toast({
+        title: "Cooking log entry removed",
+        description: "The entry has been deleted from your cooking log.",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to remove cooking log entry. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
   const handleDelete = () => {
     if (confirm("Are you sure you want to delete this recipe?")) {
       deleteMutation.mutate(recipe.id);
+    }
+  };
+
+  const handleRemoveLog = (logIndex: number) => {
+    if (confirm("Are you sure you want to remove this cooking log entry?")) {
+      removeLogMutation.mutate({ recipeId: recipe.id, logIndex });
     }
   };
 
@@ -117,22 +143,32 @@ export function RecipeCard({ recipe }: RecipeCardProps) {
             </button>
           </div>
           {showCookingLog && recipe.cookingLog?.map((log, index) => (
-            <div key={index} className="flex justify-between items-center py-2 border-b border-gray-200 last:border-b-0">
-              <div>
-                <span>{new Date((log as any).timestamp || (log as any).date).toLocaleDateString()}</span>
-                <div className="recipe-rating mt-1">
-                  {Array.from({ length: 5 }, (_, i) => (
-                    <span
-                      key={i}
-                      className={`recipe-star non-interactive ${i < log.rating ? 'filled' : ''}`}
-                      style={{ fontSize: '0.9em' }}
-                    >
-                      ★
-                    </span>
-                  ))}
+            <div key={index} className="cooking-log-entry">
+              <div className="cooking-log-content">
+                <div>
+                  <span>{new Date((log as any).timestamp || (log as any).date).toLocaleDateString()}</span>
+                  <div className="recipe-rating mt-1">
+                    {Array.from({ length: 5 }, (_, i) => (
+                      <span
+                        key={i}
+                        className={`recipe-star non-interactive ${i < log.rating ? 'filled' : ''}`}
+                        style={{ fontSize: '0.9em' }}
+                      >
+                        ★
+                      </span>
+                    ))}
+                  </div>
                 </div>
+                <span className="text-gray-600 cooking-log-notes">{log.notes}</span>
               </div>
-              <span className="text-gray-600">{log.notes}</span>
+              <button
+                onClick={() => handleRemoveLog(index)}
+                className="cooking-log-delete"
+                disabled={removeLogMutation.isPending}
+                title="Remove this cooking log entry"
+              >
+                ✕
+              </button>
             </div>
           ))}
         </div>
