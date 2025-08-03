@@ -57,6 +57,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Setup authentication routes
   setupAuth(app);
 
+  // Serve uploaded files statically
+  app.use('/uploads', express.static('uploads'));
+
   // Get user data by username (public)
   app.get("/api/users/:username", async (req, res) => {
     try {
