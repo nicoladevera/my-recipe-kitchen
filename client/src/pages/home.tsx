@@ -86,9 +86,7 @@ export default function Home({ recipes: propRecipes, isOwner = false, username }
       <div className="recipe-header">
         <div className="recipe-container">
           <h1>🌿 My Recipe Kitchen</h1>
-          {username && (
-            <p className="text-recipe-brown-light text-sm mb-4">by <span className="font-semibold text-recipe-green">{username}</span></p>
-          )}
+
           <p>A thoughtful collection of your favorite recipes, beautifully organized</p>
           
           {/* Auth controls */}

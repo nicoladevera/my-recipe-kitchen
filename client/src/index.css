@@ -471,12 +471,12 @@
   .cooking-log-notes {
     flex: 1;
     margin-top: 0;
-    text-align: right;
+    text-align: left;
   }
 
-  @media (max-width: 768px) {
+  @media (min-width: 769px) {
     .cooking-log-notes {
-      text-align: left;
+      text-align: right;
     }
   }
 

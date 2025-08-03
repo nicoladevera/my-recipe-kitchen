@@ -26,45 +26,12 @@ export default function AuthPage() {
   const [, setLocation] = useLocation();
   const [activeTab, setActiveTab] = useState("login");
 
-  const handleTabChange = (tab: string) => {
-    setActiveTab(tab);
-    // Reset forms when switching tabs to clear validation errors
-    loginForm.reset({
-      username: "",
-      password: ""
-    }, {
-      keepErrors: false,
-      keepDirty: false,
-      keepIsSubmitted: false,
-      keepTouched: false,
-      keepIsValid: false,
-      keepSubmitCount: false,
-    });
-    registerForm.reset({
-      username: "",
-      email: "",
-      password: "",
-      displayName: ""
-    }, {
-      keepErrors: false,
-      keepDirty: false,
-      keepIsSubmitted: false,
-      keepTouched: false,
-      keepIsValid: false,
-      keepSubmitCount: false,
-    });
-  };
-
-  // Redirect if already logged in
-  if (user) {
-    setLocation(`/${user.username}`);
-    return null;
-  }
-
+  // Define forms first
   const loginForm = useForm<LoginForm>({
     resolver: zodResolver(loginSchema),
     mode: "onSubmit",
     reValidateMode: "onSubmit",
+    shouldFocusError: false,
     defaultValues: {
       username: "",
       password: "",
@@ -75,6 +42,7 @@ export default function AuthPage() {
     resolver: zodResolver(insertUserSchema),
     mode: "onSubmit",
     reValidateMode: "onSubmit",
+    shouldFocusError: false,
     defaultValues: {
       username: "",
       email: "",
@@ -82,6 +50,45 @@ export default function AuthPage() {
       displayName: "",
     },
   });
+
+  const handleTabChange = (tab: string) => {
+    setActiveTab(tab);
+    // Complete form state reset to prevent mobile validation issues
+    setTimeout(() => {
+      loginForm.reset({
+        username: "",
+        password: ""
+      }, {
+        keepErrors: false,
+        keepDirty: false,
+        keepIsSubmitted: false,
+        keepTouched: false,
+        keepIsValid: false,
+        keepSubmitCount: false,
+      });
+      registerForm.reset({
+        username: "",
+        email: "",
+        password: "",
+        displayName: ""
+      }, {
+        keepErrors: false,
+        keepDirty: false,
+        keepIsSubmitted: false,
+        keepTouched: false,
+        keepIsValid: false,
+        keepSubmitCount: false,
+      });
+      loginForm.clearErrors();
+      registerForm.clearErrors();
+    }, 0);
+  };
+
+  // Redirect if already logged in
+  if (user) {
+    setLocation(`/${user.username}`);
+    return null;
+  }
 
   const onLogin = (data: LoginForm) => {
     loginMutation.mutate(data, {
