@@ -59,17 +59,21 @@ export default function AuthPage() {
   }
 
   const onLogin = (data: LoginForm) => {
-    // Manual validation for mobile compatibility
-    if (!data.username?.trim()) {
+    // Get current form values directly to ensure mobile compatibility
+    const formValues = loginForm.getValues();
+    const username = formValues.username?.trim() || data.username?.trim();
+    const password = formValues.password?.trim() || data.password?.trim();
+
+    if (!username) {
       loginForm.setError("username", { message: "Username is required" });
       return;
     }
-    if (!data.password?.trim()) {
+    if (!password) {
       loginForm.setError("password", { message: "Password is required" });
       return;
     }
 
-    loginMutation.mutate(data, {
+    loginMutation.mutate({ username, password }, {
       onSuccess: (user) => {
         loginForm.reset();
         setLocation(`/${user.username}`);
@@ -78,25 +82,31 @@ export default function AuthPage() {
   };
 
   const onRegister = (data: RegisterForm) => {
-    // Manual validation for mobile compatibility
-    if (!data.username?.trim()) {
+    // Get current form values directly to ensure mobile compatibility
+    const formValues = registerForm.getValues();
+    const username = formValues.username?.trim() || data.username?.trim();
+    const email = formValues.email?.trim() || data.email?.trim();
+    const password = formValues.password?.trim() || data.password?.trim();
+    const displayName = formValues.displayName?.trim() || data.displayName?.trim();
+
+    if (!username) {
       registerForm.setError("username", { message: "Username is required" });
       return;
     }
-    if (!data.email?.trim()) {
+    if (!email) {
       registerForm.setError("email", { message: "Email is required" });
       return;
     }
-    if (!data.password?.trim()) {
+    if (!password) {
       registerForm.setError("password", { message: "Password is required" });
       return;
     }
-    if (!data.displayName?.trim()) {
+    if (!displayName) {
       registerForm.setError("displayName", { message: "Display name is required" });
       return;
     }
 
-    registerMutation.mutate(data, {
+    registerMutation.mutate({ username, email, password, displayName }, {
       onSuccess: (user) => {
         registerForm.reset();
         setLocation(`/${user.username}`);
