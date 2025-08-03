@@ -178,7 +178,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Add cooking log entry (requires ownership)
-  app.post("/api/recipes/:id/cooking-log", requireRecipeOwnership, async (req, res) => {
+  app.post("/api/recipes/:id/cooking-log", requireRecipeOwnership, upload.single('photo'), async (req, res) => {
     try {
       const { date, timestamp, notes, rating } = req.body;
       // Accept either 'timestamp' (new format) or 'date' (legacy format)
@@ -190,6 +190,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Store as timestamp for new entries, maintain backward compatibility
       const logEntry = { timestamp: logTimestamp, notes, rating };
+      
+      // If photo was uploaded, update the recipe photo
+      if (req.file) {
+        await storage.updateRecipe(req.params.id, { photo: `/uploads/${req.file.filename}` }, req.user!.id);
+      }
+      
       const recipe = await storage.addCookingLog(req.params.id, logEntry, req.user!.id);
       if (!recipe) {
         return res.status(404).json({ error: "Recipe not found" });
