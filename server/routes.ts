@@ -3,14 +3,13 @@ import express from "express";
 import { createServer, type Server } from "http";
 import multer from "multer";
 import path from "path";
-import { uploadToMemory, uploadToObjectStorage, deleteFromObjectStorage, isObjectStorageConfigured, serveFromObjectStorage } from "./object-storage";
+import { upload, uploadToMemory, uploadToObjectStorage, deleteFromObjectStorage, isObjectStorageConfigured, serveFromObjectStorage } from "./object-storage";
 import { storage } from "./storage";
 import { insertRecipeSchema } from "@shared/schema";
 import { z } from "zod";
 import { setupAuth } from "./auth";
 
-// Configure multer for photo uploads - use Object Storage for persistent storage
-const upload = uploadToMemory;
+// Multer upload middleware is imported from object-storage.ts
 
 // Middleware to check if user owns a recipe
 const requireRecipeOwnership = async (req: Request, res: Response, next: NextFunction) => {

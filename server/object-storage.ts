@@ -9,6 +9,7 @@ async function initializeObjectStorage() {
   if (!client) {
     try {
       const { Client } = await import('@replit/object-storage');
+      // Initialize client without bucket ID - it will use environment variables
       client = new Client();
       objectStorageAvailable = true;
       console.log('Object Storage initialized successfully');
@@ -22,7 +23,7 @@ async function initializeObjectStorage() {
 }
 
 // Configure multer to use memory storage for cloud uploads
-export const uploadToMemory = multer({
+export const upload = multer({
   storage: multer.memoryStorage(),
   limits: {
     fileSize: 5 * 1024 * 1024, // 5MB limit
@@ -39,6 +40,28 @@ export const uploadToMemory = multer({
     }
   }
 });
+
+// Upload file to local storage (fallback)
+export async function uploadToMemory(file: Express.Multer.File): Promise<string> {
+  const fs = await import('fs');
+  const path = await import('path');
+  
+  // Create uploads directory if it doesn't exist
+  const uploadsDir = 'uploads';
+  if (!fs.existsSync(uploadsDir)) {
+    fs.mkdirSync(uploadsDir, { recursive: true });
+  }
+  
+  // Generate unique filename
+  const fileName = `${nanoid()}-${file.originalname}`;
+  const filePath = path.join(uploadsDir, fileName);
+  
+  // Write file to local storage
+  fs.writeFileSync(filePath, file.buffer);
+  
+  // Return URL path
+  return `/uploads/${fileName}`;
+}
 
 // Upload file to Replit Object Storage
 export async function uploadToObjectStorage(file: Express.Multer.File): Promise<string> {
