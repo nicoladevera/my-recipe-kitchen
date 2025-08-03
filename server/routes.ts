@@ -57,6 +57,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Setup authentication routes
   setupAuth(app);
 
+  // Get user data by username (public)
+  app.get("/api/users/:username", async (req, res) => {
+    try {
+      const user = await storage.getUserByUsername(req.params.username);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+      // Return public user data (exclude sensitive fields)
+      const { password, passwordResetToken, passwordResetExpires, ...publicUser } = user;
+      res.json(publicUser);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch user" });
+    }
+  });
+
   // Get recipes for a specific user (public)
   app.get("/api/users/:username/recipes", async (req, res) => {
     try {

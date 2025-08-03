@@ -12,9 +12,10 @@ interface HomeProps {
   recipes?: Recipe[];
   isOwner?: boolean;
   username?: string;
+  profileUser?: any;
 }
 
-export default function Home({ recipes: propRecipes, isOwner = false, username }: HomeProps) {
+export default function Home({ recipes: propRecipes, isOwner = false, username, profileUser }: HomeProps) {
   const [activeSection, setActiveSection] = useState<"my-recipes" | "add-recipe">("my-recipes");
   const [searchTerm, setSearchTerm] = useState("");
   const [filterRating, setFilterRating] = useState("");
@@ -120,8 +121,8 @@ export default function Home({ recipes: propRecipes, isOwner = false, username }
             )}
           </div>
           
-          {/* Explanatory section for non-logged in users */}
-          {!user && !isOwner && (
+          {/* Explanatory section for landing page only (no username = landing page) */}
+          {!username && !user && (
             <div className="mt-12">
               <div className="recipe-card max-w-4xl mx-auto">
                 <div className="text-center">
@@ -179,7 +180,7 @@ export default function Home({ recipes: propRecipes, isOwner = false, username }
 
         {(activeSection === "my-recipes" || !isOwner) ? (
           <div className="recipe-section">
-            <h2>{username && user?.displayName ? `${user.displayName}'s Recipe Collection` : username ? `${username}'s Recipe Collection` : "Recipe Collection"}</h2>
+            <h2>{username && profileUser?.displayName ? `${profileUser.displayName}'s Recipe Collection` : username ? `${username}'s Recipe Collection` : "Recipe Collection"}</h2>
             
             <RecipeFilters
               searchTerm={searchTerm}
