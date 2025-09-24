@@ -6,13 +6,14 @@ import { relations } from "drizzle-orm";
 
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  username: varchar("username", { length: 50 }).notNull().unique(),
-  email: text("email").notNull().unique(),
+  username: varchar("username", { length: 50 }).notNull(),
+  email: text("email").notNull(),
   password: text("password").notNull(),
   displayName: text("display_name"),
   bio: text("bio"),
   passwordResetToken: text("password_reset_token"),
   passwordResetExpires: timestamp("password_reset_expires"),
+  environment: varchar("environment", { length: 20 }).notNull().default('development'),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -29,6 +30,7 @@ export const recipes = pgTable("recipes", {
   rating: integer("rating").default(0),
   photo: text("photo"),
   cookingLog: jsonb("cooking_log").$type<CookingLogEntry[]>().default([]),
+  environment: varchar("environment", { length: 20 }).notNull().default('development'),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
