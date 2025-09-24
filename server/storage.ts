@@ -1,5 +1,5 @@
 import { type Recipe, type InsertRecipe, type CookingLogEntry, type User, type InsertUser, recipes, users } from "@shared/schema";
-import { db } from "./db";
+import { db, getEnvironment } from "./db";
 import { eq, and, isNull } from "drizzle-orm";
 
 export interface IStorage {
@@ -24,24 +24,28 @@ export interface IStorage {
 export class DatabaseStorage implements IStorage {
   // User operations
   async getUser(id: string): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.id, id));
+    const currentEnv = getEnvironment();
+    const [user] = await db.select().from(users).where(and(eq(users.id, id), eq(users.environment, currentEnv)));
     return user || undefined;
   }
 
   async getUserByUsername(username: string): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.username, username));
+    const currentEnv = getEnvironment();
+    const [user] = await db.select().from(users).where(and(eq(users.username, username), eq(users.environment, currentEnv)));
     return user || undefined;
   }
 
   async getUserByEmail(email: string): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.email, email));
+    const currentEnv = getEnvironment();
+    const [user] = await db.select().from(users).where(and(eq(users.email, email), eq(users.environment, currentEnv)));
     return user || undefined;
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
+    const currentEnv = getEnvironment();
     const [user] = await db
       .insert(users)
-      .values(insertUser)
+      .values({ ...insertUser, environment: currentEnv })
       .returning();
     return user;
   }
@@ -79,9 +83,10 @@ export class DatabaseStorage implements IStorage {
 
   // Recipe operations
   async getRecipes(userId?: string): Promise<Recipe[]> {
+    const currentEnv = getEnvironment();
     const query = userId 
-      ? db.select().from(recipes).where(eq(recipes.userId, userId))
-      : db.select().from(recipes).where(isNull(recipes.userId)); // Only return static recipes (null user_id) for home page
+      ? db.select().from(recipes).where(and(eq(recipes.userId, userId), eq(recipes.environment, currentEnv)))
+      : db.select().from(recipes).where(and(isNull(recipes.userId), eq(recipes.environment, currentEnv))); // Only return static recipes (null user_id) for home page
     
     const allRecipes = await query;
     
@@ -100,11 +105,13 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getRecipe(id: string): Promise<Recipe | undefined> {
-    const [recipe] = await db.select().from(recipes).where(eq(recipes.id, id));
+    const currentEnv = getEnvironment();
+    const [recipe] = await db.select().from(recipes).where(and(eq(recipes.id, id), eq(recipes.environment, currentEnv)));
     return recipe || undefined;
   }
 
   async createRecipe(insertRecipe: InsertRecipe, userId: string): Promise<Recipe> {
+    const currentEnv = getEnvironment();
     const [recipe] = await db
       .insert(recipes)
       .values({
@@ -112,16 +119,18 @@ export class DatabaseStorage implements IStorage {
         userId,
         rating: 0,
         cookingLog: [],
+        environment: currentEnv,
       })
       .returning();
     return recipe;
   }
 
   async updateRecipe(id: string, updates: Partial<InsertRecipe>, userId: string): Promise<Recipe | undefined> {
+    const currentEnv = getEnvironment();
     const [updatedRecipe] = await db
       .update(recipes)
       .set(updates as any)
-      .where(and(eq(recipes.id, id), eq(recipes.userId, userId)))
+      .where(and(eq(recipes.id, id), eq(recipes.userId, userId), eq(recipes.environment, currentEnv)))
       .returning();
     return updatedRecipe || undefined;
   }
