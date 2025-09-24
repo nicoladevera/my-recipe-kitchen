@@ -3,7 +3,9 @@ import { drizzle } from 'drizzle-orm/neon-serverless';
 import ws from "ws";
 import * as schema from "@shared/schema";
 
+// Configure Neon for better production stability
 neonConfig.webSocketConstructor = ws;
+neonConfig.poolQueryViaFetch = true; // Use fetch for better cold start performance
 
 // Single database with environment-based data isolation
 function getDatabaseUrl() {
@@ -22,5 +24,11 @@ export function getEnvironment(): 'development' | 'production' {
 }
 
 const databaseUrl = getDatabaseUrl();
-export const pool = new Pool({ connectionString: databaseUrl });
+export const pool = new Pool({ 
+  connectionString: databaseUrl,
+  // Better production settings
+  connectionTimeoutMillis: 10000,
+  idleTimeoutMillis: 30000,
+  max: 20
+});
 export const db = drizzle({ client: pool, schema });
