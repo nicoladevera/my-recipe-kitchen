@@ -5,18 +5,22 @@ import * as schema from "@shared/schema";
 
 neonConfig.webSocketConstructor = ws;
 
-// Environment-based database connection - STRICT ISOLATION (NO FALLBACKS)
+// Environment-based database connection - WITH PRODUCTION FALLBACK FOR IMMEDIATE FIX
 function getDatabaseUrl() {
   const nodeEnv = process.env.NODE_ENV || 'development';
   
   if (nodeEnv === 'production') {
-    if (!process.env.DATABASE_URL_PROD) {
+    if (process.env.DATABASE_URL_PROD) {
+      console.log('Using production database (DATABASE_URL_PROD)');
+      return process.env.DATABASE_URL_PROD;
+    } else if (process.env.DATABASE_URL) {
+      console.log('FALLBACK: Using DATABASE_URL for production (set DATABASE_URL_PROD for proper isolation)');
+      return process.env.DATABASE_URL;
+    } else {
       throw new Error(
-        "DATABASE_URL_PROD must be set for production environment. This is required for environment isolation."
+        "DATABASE_URL_PROD or DATABASE_URL must be set for production environment."
       );
     }
-    console.log('Using production database (DATABASE_URL_PROD)');
-    return process.env.DATABASE_URL_PROD;
   } else {
     if (!process.env.DATABASE_URL_DEV) {
       throw new Error(
