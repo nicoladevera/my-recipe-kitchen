@@ -51,10 +51,11 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateUser(id: string, updates: Partial<InsertUser>): Promise<User | undefined> {
+    const currentEnv = getEnvironment();
     const [updatedUser] = await db
       .update(users)
       .set({ ...updates, updatedAt: new Date() } as any)
-      .where(eq(users.id, id))
+      .where(and(eq(users.id, id), eq(users.environment, currentEnv)))
       .returning();
     return updatedUser || undefined;
   }
@@ -72,10 +73,11 @@ export class DatabaseStorage implements IStorage {
     
     // Hash new password and update
     const hashedNewPassword = await hashPassword(newPassword);
+    const currentEnv = getEnvironment();
     const [updatedUser] = await db
       .update(users)
       .set({ password: hashedNewPassword, updatedAt: new Date() })
-      .where(eq(users.id, id))
+      .where(and(eq(users.id, id), eq(users.environment, currentEnv)))
       .returning();
     
     return !!updatedUser;
@@ -136,9 +138,10 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteRecipe(id: string, userId: string): Promise<boolean> {
+    const currentEnv = getEnvironment();
     const result = await db
       .delete(recipes)
-      .where(and(eq(recipes.id, id), eq(recipes.userId, userId)));
+      .where(and(eq(recipes.id, id), eq(recipes.userId, userId), eq(recipes.environment, currentEnv)));
     return (result.rowCount || 0) > 0;
   }
 
@@ -153,13 +156,14 @@ export class DatabaseStorage implements IStorage {
     const totalRatings = updatedLog.reduce((sum, entry) => sum + entry.rating, 0);
     const averageRating = Math.round(totalRatings / updatedLog.length);
 
+    const currentEnv = getEnvironment();
     const [updatedRecipe] = await db
       .update(recipes)
       .set({ 
         cookingLog: updatedLog,
         rating: averageRating
       })
-      .where(and(eq(recipes.id, id), eq(recipes.userId, userId)))
+      .where(and(eq(recipes.id, id), eq(recipes.userId, userId), eq(recipes.environment, currentEnv)))
       .returning();
     
     return updatedRecipe || undefined;
@@ -182,13 +186,14 @@ export class DatabaseStorage implements IStorage {
       averageRating = Math.round(totalRatings / currentLog.length);
     }
 
+    const currentEnv = getEnvironment();
     const [updatedRecipe] = await db
       .update(recipes)
       .set({ 
         cookingLog: currentLog,
         rating: averageRating
       })
-      .where(and(eq(recipes.id, id), eq(recipes.userId, userId)))
+      .where(and(eq(recipes.id, id), eq(recipes.userId, userId), eq(recipes.environment, currentEnv)))
       .returning();
     
     return updatedRecipe || undefined;
