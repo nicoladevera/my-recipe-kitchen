@@ -122,7 +122,7 @@ export default function Home({ recipes: propRecipes, isOwner = false, username, 
           </div>
           
           {/* Explanatory section for landing page only (no username = landing page) */}
-          {!username && !user && (
+          {!username && (
             <div className="mt-12">
               <div className="recipe-card max-w-4xl mx-auto">
                 <div className="text-center">
