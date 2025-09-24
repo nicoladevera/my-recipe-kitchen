@@ -1,5 +1,6 @@
 import { useParams, useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
+import { useEffect } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import Home from "./home";
 import NotFound from "./not-found";
@@ -41,6 +42,14 @@ export default function UserPage() {
 
   // Check if current user owns this page
   const isOwner = user?.username === username;
+
+  // Set dynamic page title when user data is loaded
+  useEffect(() => {
+    if (userData) {
+      const displayName = userData.displayName || username;
+      document.title = `My Recipe Kitchen - ${displayName}`;
+    }
+  }, [userData, username]);
 
   if (userLoading || recipesLoading) {
     return (

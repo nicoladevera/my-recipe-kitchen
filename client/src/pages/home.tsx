@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { RecipeCard } from "@/components/recipe-card";
 import { AddRecipeForm } from "@/components/add-recipe-form";
 import { RecipeFilters } from "@/components/recipe-filters";
@@ -22,6 +22,17 @@ export default function Home({ recipes: propRecipes, isOwner = false, username, 
   const [filterTime, setFilterTime] = useState("");
   const { user, logoutMutation } = useAuth();
   const [, setLocation] = useLocation();
+
+  // Set dynamic page title
+  useEffect(() => {
+    if (!username) {
+      document.title = "My Recipe Kitchen - Home";
+    } else if (profileUser?.displayName) {
+      document.title = `My Recipe Kitchen - ${profileUser.displayName}`;
+    } else if (username) {
+      document.title = `My Recipe Kitchen - ${username}`;
+    }
+  }, [username, profileUser]);
 
   // Use prop recipes if provided (for user pages), otherwise fetch all recipes (for home page)
   const { data: fetchedRecipes = [], isLoading } = useRecipes(propRecipes ? undefined : true);
