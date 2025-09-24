@@ -1,0 +1,2 @@
+Current DATABASE_URL (has all data): postgresql://neondb_owner:npg_81gfdweNkpQR@ep-noisy-sound-ad04lcd9.c-2.us-east-1.aws.neon.tech/neondb?sslmode=require
+New PG URL: postgresql://neondb_owner:npg_81gfdweNkpQR@ep-noisy-sound-ad04lcd9.c-2.us-east-1.aws.neon.tech:5432/neondb?sslmode=require
