@@ -32,17 +32,22 @@ export async function comparePasswords(supplied: string, stored: string) {
 
 export function setupAuth(app: Express) {
   const PostgresSessionStore = connectPg(session);
-  
+
+  // Validate SESSION_SECRET in production
+  if (process.env.NODE_ENV === 'production' && !process.env.SESSION_SECRET) {
+    throw new Error('SESSION_SECRET environment variable must be set in production');
+  }
+
   const sessionSettings: session.SessionOptions = {
     secret: process.env.SESSION_SECRET || "your-secret-key-change-in-production",
     resave: false,
     saveUninitialized: false,
-    store: new PostgresSessionStore({ 
-      pool, 
-      createTableIfMissing: true 
+    store: new PostgresSessionStore({
+      pool,
+      createTableIfMissing: true
     }),
     cookie: {
-      secure: false, // Set to true in production with HTTPS
+      secure: process.env.NODE_ENV === 'production', // Use secure cookies in production
       httpOnly: true,
       maxAge: 1000 * 60 * 60 * 24 * 7, // 7 days
     }
@@ -81,11 +86,17 @@ export function setupAuth(app: Express) {
   app.post("/api/register", async (req, res, next) => {
     try {
       const { username, email, password, displayName } = req.body;
-      
-      // Check if username or email already exists
-      const existingUser = await storage.getUserByUsername(username) || await storage.getUserByEmail(email);
-      if (existingUser) {
-        return res.status(400).json({ error: "Username or email already exists" });
+
+      // Check if username already exists
+      const existingUsername = await storage.getUserByUsername(username);
+      if (existingUsername) {
+        return res.status(400).json({ error: "Username already taken" });
+      }
+
+      // Check if email already exists
+      const existingEmail = await storage.getUserByEmail(email);
+      if (existingEmail) {
+        return res.status(400).json({ error: "Email already registered" });
       }
 
       const hashedPassword = await hashPassword(password);
@@ -101,6 +112,19 @@ export function setupAuth(app: Express) {
         res.status(201).json({ id: user.id, username: user.username, email: user.email, displayName: user.displayName });
       });
     } catch (error) {
+      // Database constraint violation (duplicate username/email)
+      if (error && typeof error === 'object' && 'code' in error) {
+        const dbError = error as { code: string; constraint?: string };
+        if (dbError.code === '23505') { // PostgreSQL unique violation
+          if (dbError.constraint?.includes('username')) {
+            return res.status(400).json({ error: "Username already taken" });
+          }
+          if (dbError.constraint?.includes('email')) {
+            return res.status(400).json({ error: "Email already registered" });
+          }
+          return res.status(400).json({ error: "Username or email already exists" });
+        }
+      }
       res.status(500).json({ error: "Registration failed" });
     }
   });

@@ -6,6 +6,17 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
+// HTTPS redirect in production
+if (process.env.NODE_ENV === 'production') {
+  app.use((req, res, next) => {
+    if (req.header('x-forwarded-proto') !== 'https') {
+      res.redirect(`https://${req.header('host')}${req.url}`);
+    } else {
+      next();
+    }
+  });
+}
+
 app.use((req, res, next) => {
   const start = Date.now();
   const path = req.path;
@@ -22,7 +33,15 @@ app.use((req, res, next) => {
     if (path.startsWith("/api")) {
       let logLine = `${req.method} ${path} ${res.statusCode} in ${duration}ms`;
       if (capturedJsonResponse) {
-        logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
+        // Sanitize sensitive fields from logs
+        const sanitizedResponse = { ...capturedJsonResponse };
+        const sensitiveFields = ['password', 'token', 'secret', 'passwordResetToken'];
+        sensitiveFields.forEach(field => {
+          if (field in sanitizedResponse) {
+            sanitizedResponse[field] = '[REDACTED]';
+          }
+        });
+        logLine += ` :: ${JSON.stringify(sanitizedResponse)}`;
       }
 
       if (logLine.length > 80) {
