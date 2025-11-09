@@ -85,7 +85,18 @@ export function setupAuth(app: Express) {
   // Register endpoint
   app.post("/api/register", async (req, res, next) => {
     try {
-      const { username, email, password, displayName } = req.body;
+      const { insertUserSchema } = await import("@shared/schema");
+
+      // Validate input first
+      const validationResult = insertUserSchema.safeParse(req.body);
+      if (!validationResult.success) {
+        return res.status(400).json({
+          error: "Invalid input",
+          details: validationResult.error.errors
+        });
+      }
+
+      const { username, email, password, displayName } = validationResult.data;
 
       // Check if username already exists
       const existingUsername = await storage.getUserByUsername(username);
