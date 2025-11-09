@@ -19,8 +19,10 @@ function getDatabaseUrl() {
 }
 
 // Environment helper for data isolation
-export function getEnvironment(): 'development' | 'production' {
-  return (process.env.NODE_ENV === 'production') ? 'production' : 'development';
+export function getEnvironment(): 'development' | 'production' | 'test' {
+  if (process.env.NODE_ENV === 'production') return 'production';
+  if (process.env.NODE_ENV === 'test') return 'test';
+  return 'development';
 }
 
 const databaseUrl = getDatabaseUrl();
