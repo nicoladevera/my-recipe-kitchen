@@ -8,8 +8,11 @@ This is a full-stack Recipe Manager application built with React, Express, and P
 
 Preferred communication style: Simple, everyday language.
 
-## Recent Changes (August 2025)
+## Recent Changes (November 2025)
 
+- **GitHub Integration**: Successfully synced project to GitHub repository at https://github.com/nicoladevera/myrecipekitchen using git commands
+- **Browser Tab Titles Fixed**: Added default `<title>My Recipe Kitchen</title>` to HTML template to prevent URLs from showing in browser tabs before React loads
+- **Environment Database Isolation**: Implemented complete production/development environment separation using single database with environment column filtering for all CRUD operations
 - **True Persistent Storage Achieved**: Successfully configured Replit Object Storage with proper bucket initialization for permanent photo persistence across all deployments and years of inactivity, with intelligent fallback to local storage during any temporary issues, ensuring zero data loss and indefinite photo availability
 - **Production Display Issues Fixed**: Resolved two critical post-deployment bugs: removed landing page marketing blurb from user profile pages and fixed recipe collection headers to show display names instead of usernames
 - **User Profile API Enhancement**: Added `/api/users/:username` endpoint to fetch user profile data by username for proper display name rendering on profile pages
