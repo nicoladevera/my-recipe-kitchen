@@ -15,9 +15,28 @@ export default defineConfig({
         '**/*.test.ts',
         '**/*.spec.ts',
         'server/__tests__/**',
+        'vitest.config.ts',
+        'vite.config.ts',
+        'tailwind.config.ts',
+        'postcss.config.js',
       ],
+      thresholds: {
+        lines: 80,
+        functions: 80,
+        branches: 75,
+        statements: 80,
+      },
     },
     testTimeout: 10000,
+    // Improve test output
+    reporters: ['default'],
+    // Run tests in parallel for speed
+    pool: 'threads',
+    poolOptions: {
+      threads: {
+        singleThread: false,
+      },
+    },
   },
   resolve: {
     alias: {
