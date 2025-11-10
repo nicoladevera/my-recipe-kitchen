@@ -236,13 +236,18 @@ describe('POST /api/login', () => {
 
     // Register a test user with unique username
     testUsername = uniqueUsername('testuser');
-    await request(app)
+    const response = await request(app)
       .post('/api/register')
       .send({
         username: testUsername,
         email: `${testUsername}@example.com`,
         password: 'password123'
       });
+
+    // Verify registration succeeded
+    if (response.status !== 201) {
+      throw new Error(`User registration failed: ${response.status} ${JSON.stringify(response.body)}`);
+    }
   });
 
   it('should login with correct credentials', async () => {

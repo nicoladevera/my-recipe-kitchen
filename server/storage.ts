@@ -94,14 +94,14 @@ export class DatabaseStorage implements IStorage {
     
     // Sort recipes by latest cooking activity, then by creation date
     return allRecipes.sort((a, b) => {
-      const aLatestLog = (a.cookingLog && a.cookingLog.length > 0) 
-        ? new Date(a.cookingLog[a.cookingLog.length - 1].timestamp).getTime()
+      const aLatestLog = (a.cookingLog && a.cookingLog.length > 0)
+        ? new Date(a.cookingLog[0].timestamp).getTime()  // Index 0 is newest (entries added at beginning)
         : new Date(a.createdAt!).getTime();
-      
-      const bLatestLog = (b.cookingLog && b.cookingLog.length > 0) 
-        ? new Date(b.cookingLog[b.cookingLog.length - 1].timestamp).getTime()
+
+      const bLatestLog = (b.cookingLog && b.cookingLog.length > 0)
+        ? new Date(b.cookingLog[0].timestamp).getTime()  // Index 0 is newest (entries added at beginning)
         : new Date(b.createdAt!).getTime();
-      
+
       return bLatestLog - aLatestLog;
     });
   }
