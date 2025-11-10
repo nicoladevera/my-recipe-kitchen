@@ -5,6 +5,10 @@ export default defineConfig({
   test: {
     globals: true,
     environment: 'node',
+    // Run tests sequentially to prevent race conditions with database cleanup
+    sequence: {
+      concurrent: false,
+    },
     // Run env-setup.ts first to configure environment variables before any imports
     setupFiles: ['./server/__tests__/env-setup.ts', './server/__tests__/setup.ts'],
     coverage: {
