@@ -14,6 +14,11 @@ function createTestApp() {
   return app;
 }
 
+// Helper to create unique username for each test
+function uniqueUsername(base: string): string {
+  return `${base}_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+}
+
 describe('Password Security', () => {
   it('should hash passwords with salt', async () => {
     const password = 'mypassword123';
@@ -75,29 +80,31 @@ describe('POST /api/register', () => {
   });
 
   it('should register new user with valid data', async () => {
+    const username = uniqueUsername('newuser');
     const response = await request(app)
       .post('/api/register')
       .send({
-        username: 'newuser',
-        email: 'newuser@example.com',
+        username: username,
+        email: `${username}@example.com`,
         password: 'password123',
         displayName: 'New User'
       });
 
     expect(response.status).toBe(201);
     expect(response.body).toHaveProperty('id');
-    expect(response.body.username).toBe('newuser');
-    expect(response.body.email).toBe('newuser@example.com');
+    expect(response.body.username).toBe(username);
+    expect(response.body.email).toBe(`${username}@example.com`);
     expect(response.body.displayName).toBe('New User');
     expect(response.body).not.toHaveProperty('password');
   });
 
   it('should create session cookie on registration', async () => {
+    const username = uniqueUsername('sessionuser');
     const response = await request(app)
       .post('/api/register')
       .send({
-        username: 'sessionuser',
-        email: 'session@example.com',
+        username: username,
+        email: `${username}@example.com`,
         password: 'password123'
       });
 
@@ -106,12 +113,13 @@ describe('POST /api/register', () => {
   });
 
   it('should reject duplicate username (CRITICAL - NEW CONSTRAINT)', async () => {
+    const username = uniqueUsername('duplicateuser');
     // Register first user
     await request(app)
       .post('/api/register')
       .send({
-        username: 'duplicateuser',
-        email: 'user1@example.com',
+        username: username,
+        email: `${username}1@example.com`,
         password: 'password123'
       });
 
@@ -119,8 +127,8 @@ describe('POST /api/register', () => {
     const response = await request(app)
       .post('/api/register')
       .send({
-        username: 'duplicateuser',
-        email: 'user2@example.com',
+        username: username,
+        email: `${username}2@example.com`,
         password: 'password456'
       });
 
@@ -129,12 +137,13 @@ describe('POST /api/register', () => {
   });
 
   it('should reject duplicate email (CRITICAL - NEW CONSTRAINT)', async () => {
+    const email = `duplicate_${Date.now()}@example.com`;
     // Register first user
     await request(app)
       .post('/api/register')
       .send({
-        username: 'user1',
-        email: 'duplicate@example.com',
+        username: uniqueUsername('user1'),
+        email: email,
         password: 'password123'
       });
 
@@ -142,8 +151,8 @@ describe('POST /api/register', () => {
     const response = await request(app)
       .post('/api/register')
       .send({
-        username: 'user2',
-        email: 'duplicate@example.com',
+        username: uniqueUsername('user2'),
+        email: email,
         password: 'password456'
       });
 
@@ -152,11 +161,12 @@ describe('POST /api/register', () => {
   });
 
   it('should reject password shorter than 8 characters', async () => {
+    const username = uniqueUsername('weakpass');
     const response = await request(app)
       .post('/api/register')
       .send({
-        username: 'weakpass',
-        email: 'weak@example.com',
+        username: username,
+        email: `${username}@example.com`,
         password: 'short'
       });
 
@@ -200,16 +210,17 @@ describe('POST /api/register', () => {
   });
 
   it('should hash password before storing', async () => {
+    const username = uniqueUsername('hasheduser');
     const password = 'plaintextpassword';
     await request(app)
       .post('/api/register')
       .send({
-        username: 'hasheduser',
-        email: 'hashed@example.com',
+        username: username,
+        email: `${username}@example.com`,
         password
       });
 
-    const user = await storage.getUserByUsername('hasheduser');
+    const user = await storage.getUserByUsername(username);
     expect(user).toBeDefined();
     expect(user!.password).not.toBe(password);
     expect(user!.password).toContain('.'); // Has salt
@@ -218,16 +229,18 @@ describe('POST /api/register', () => {
 
 describe('POST /api/login', () => {
   let app: express.Express;
+  let testUsername: string;
 
   beforeEach(async () => {
     app = createTestApp();
 
-    // Register a test user
+    // Register a test user with unique username
+    testUsername = uniqueUsername('testuser');
     await request(app)
       .post('/api/register')
       .send({
-        username: 'testuser',
-        email: 'test@example.com',
+        username: testUsername,
+        email: `${testUsername}@example.com`,
         password: 'password123'
       });
   });
@@ -236,13 +249,13 @@ describe('POST /api/login', () => {
     const response = await request(app)
       .post('/api/login')
       .send({
-        username: 'testuser',
+        username: testUsername,
         password: 'password123'
       });
 
     expect(response.status).toBe(200);
-    expect(response.body.username).toBe('testuser');
-    expect(response.body.email).toBe('test@example.com');
+    expect(response.body.username).toBe(testUsername);
+    expect(response.body.email).toBe(`${testUsername}@example.com`);
     expect(response.body).not.toHaveProperty('password');
   });
 
@@ -250,7 +263,7 @@ describe('POST /api/login', () => {
     const response = await request(app)
       .post('/api/login')
       .send({
-        username: 'testuser',
+        username: testUsername,
         password: 'password123'
       });
 
@@ -262,7 +275,7 @@ describe('POST /api/login', () => {
     const response = await request(app)
       .post('/api/login')
       .send({
-        username: 'testuser',
+        username: testUsername,
         password: 'wrongpassword'
       });
 
@@ -289,7 +302,7 @@ describe('POST /api/login', () => {
 
     const wrongPass = await request(app)
       .post('/api/login')
-      .send({ username: 'testuser', password: 'wrongpassword' });
+      .send({ username: testUsername, password: 'wrongpassword' });
 
     // Both should return same error message
     expect(wrongUser.body.error).toBe(wrongPass.body.error);
@@ -304,12 +317,13 @@ describe('POST /api/logout', () => {
   });
 
   it('should logout authenticated user', async () => {
+    const username = uniqueUsername('logoutuser');
     // Register and login
     const loginResponse = await request(app)
       .post('/api/register')
       .send({
-        username: 'logoutuser',
-        email: 'logout@example.com',
+        username: username,
+        email: `${username}@example.com`,
         password: 'password123'
       });
 
@@ -332,12 +346,13 @@ describe('GET /api/user', () => {
   });
 
   it('should return user data when authenticated', async () => {
+    const username = uniqueUsername('authuser');
     // Register user
     const registerResponse = await request(app)
       .post('/api/register')
       .send({
-        username: 'authuser',
-        email: 'auth@example.com',
+        username: username,
+        email: `${username}@example.com`,
         password: 'password123',
         displayName: 'Auth User'
       });
@@ -350,8 +365,8 @@ describe('GET /api/user', () => {
       .set('Cookie', cookies);
 
     expect(response.status).toBe(200);
-    expect(response.body.username).toBe('authuser');
-    expect(response.body.email).toBe('auth@example.com');
+    expect(response.body.username).toBe(username);
+    expect(response.body.email).toBe(`${username}@example.com`);
     expect(response.body.displayName).toBe('Auth User');
     expect(response.body).not.toHaveProperty('password');
   });
@@ -364,11 +379,12 @@ describe('GET /api/user', () => {
   });
 
   it('should not expose sensitive fields', async () => {
+    const username = uniqueUsername('sensitiveuser');
     const registerResponse = await request(app)
       .post('/api/register')
       .send({
-        username: 'sensitiveuser',
-        email: 'sensitive@example.com',
+        username: username,
+        email: `${username}@example.com`,
         password: 'password123'
       });
 

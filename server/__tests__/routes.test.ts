@@ -16,11 +16,14 @@ async function createTestApp() {
 
 // Helper to create authenticated user and get session cookie
 async function createAuthenticatedUser(app: express.Express, username: string) {
+  // Make username globally unique to prevent conflicts across tests
+  const uniqueUsername = `${username}_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+
   const response = await request(app)
     .post('/api/register')
     .send({
-      username,
-      email: `${username}@example.com`,
+      username: uniqueUsername,
+      email: `${uniqueUsername}@example.com`,
       password: 'password123',
       displayName: username
     });
@@ -37,7 +40,8 @@ async function createAuthenticatedUser(app: express.Express, username: string) {
 
   return {
     user: response.body,
-    cookies: response.headers['set-cookie']
+    cookies: response.headers['set-cookie'],
+    username: uniqueUsername
   };
 }
 
@@ -694,14 +698,14 @@ describe('User Profile Operations (CRITICAL)', () => {
 
   describe('GET /api/users/:username', () => {
     it('should return public user data', async () => {
-      await createAuthenticatedUser(app, 'publicuser');
+      const { username } = await createAuthenticatedUser(app, 'publicuser');
 
       const response = await request(app)
-        .get('/api/users/publicuser');
+        .get(`/api/users/${username}`);
 
       expect(response.status).toBe(200);
-      expect(response.body.username).toBe('publicuser');
-      expect(response.body.email).toBe('publicuser@example.com');
+      expect(response.body.username).toBe(username);
+      expect(response.body.email).toBe(`${username}@example.com`);
       expect(response.body).not.toHaveProperty('password');
       expect(response.body).not.toHaveProperty('passwordResetToken');
     });
@@ -716,7 +720,7 @@ describe('User Profile Operations (CRITICAL)', () => {
 
   describe('GET /api/users/:username/recipes', () => {
     it('should return user recipes', async () => {
-      const { cookies } = await createAuthenticatedUser(app, 'recipeuser');
+      const { cookies, username } = await createAuthenticatedUser(app, 'recipeuser');
 
       await request(app)
         .post('/api/recipes')
@@ -743,7 +747,7 @@ describe('User Profile Operations (CRITICAL)', () => {
         });
 
       const response = await request(app)
-        .get('/api/users/recipeuser/recipes');
+        .get(`/api/users/${username}/recipes`);
 
       expect(response.status).toBe(200);
       expect(Array.isArray(response.body)).toBe(true);
@@ -815,7 +819,7 @@ describe('User Profile Operations (CRITICAL)', () => {
 
   describe('PATCH /api/user/password', () => {
     it('should change password with correct current password', async () => {
-      const { cookies } = await createAuthenticatedUser(app, 'passuser');
+      const { cookies, username } = await createAuthenticatedUser(app, 'passuser');
 
       const response = await request(app)
         .patch('/api/user/password')
@@ -831,7 +835,7 @@ describe('User Profile Operations (CRITICAL)', () => {
       const loginResponse = await request(app)
         .post('/api/login')
         .send({
-          username: 'passuser',
+          username: username,
           password: 'newpassword456'
         });
 
