@@ -792,14 +792,14 @@ describe('User Profile Operations (CRITICAL)', () => {
     });
 
     it('should reject duplicate username', async () => {
-      await createAuthenticatedUser(app, 'existinguser');
+      const { username: existingUsername } = await createAuthenticatedUser(app, 'existinguser');
       const { cookies } = await createAuthenticatedUser(app, 'changinguser');
 
       const response = await request(app)
         .patch('/api/user')
         .set('Cookie', cookies)
         .send({
-          username: 'existinguser'
+          username: existingUsername
         });
 
       expect(response.status).toBe(400);
