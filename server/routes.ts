@@ -8,6 +8,7 @@ import { storage } from "./storage";
 import { insertRecipeSchema } from "@shared/schema";
 import { z } from "zod";
 import { setupAuth } from "./auth";
+import { fromError } from "zod-validation-error";
 
 // Multer upload middleware is imported from object-storage.ts
 
@@ -141,9 +142,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         cookTime: parseInt(req.body.cookTime),
         servings: parseInt(req.body.servings),
       };
-      
-      const recipeData = insertRecipeSchema.parse(formData);
-      
+
+      // Validate input
+      const validationResult = insertRecipeSchema.safeParse(formData);
+      if (!validationResult.success) {
+        const validationError = fromError(validationResult.error);
+        return res.status(400).json({ error: validationError.message });
+      }
+
+      const recipeData = validationResult.data;
+
       // If photo was uploaded, try Object Storage first, fallback to local storage
       if (req.file) {
         try {
@@ -160,24 +168,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(201).json(recipe);
     } catch (error) {
       console.error('Recipe creation error:', error);
-      if (error instanceof z.ZodError) {
-        res.status(400).json({ error: "Invalid recipe data", details: error.errors });
-      } else {
-        res.status(500).json({ error: "Failed to create recipe", details: error instanceof Error ? error.message : "Unknown error" });
-      }
+      res.status(500).json({ error: "Failed to create recipe", details: error instanceof Error ? error.message : "Unknown error" });
     }
   });
 
   // Update recipe (requires ownership)
   app.patch("/api/recipes/:id", requireRecipeOwnership, upload.single('photo'), async (req, res) => {
     try {
-      const updates = insertRecipeSchema.partial().parse(req.body);
-      
+      // Validate input
+      const validationResult = insertRecipeSchema.partial().safeParse(req.body);
+      if (!validationResult.success) {
+        const validationError = fromError(validationResult.error);
+        return res.status(400).json({ error: validationError.message });
+      }
+
+      const updates = validationResult.data;
+
       // If photo was uploaded, store in Object Storage and delete old photo
       if (req.file) {
         // Get the existing recipe to check for old photo
         const existingRecipe = await storage.getRecipe(req.params.id);
-        
+
         // Upload new photo - try Object Storage first, fallback to local storage
         try {
           updates.photo = await uploadToObjectStorage(req.file);
@@ -187,7 +198,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           updates.photo = await uploadToMemory(req.file);
           console.log('Fallback upload successful:', updates.photo);
         }
-        
+
         // Delete old photo from Object Storage if it exists (not from external URLs or uploads)
         if (existingRecipe?.photo && existingRecipe.photo.startsWith('/objects/')) {
           await deleteFromObjectStorage(existingRecipe.photo);
@@ -201,11 +212,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(recipe);
     } catch (error) {
       console.error('Recipe update error:', error);
-      if (error instanceof z.ZodError) {
-        res.status(400).json({ error: "Invalid update data", details: error.errors });
-      } else {
-        res.status(500).json({ error: "Failed to update recipe", details: error instanceof Error ? error.message : "Unknown error" });
-      }
+      res.status(500).json({ error: "Failed to update recipe", details: error instanceof Error ? error.message : "Unknown error" });
     }
   });
 
