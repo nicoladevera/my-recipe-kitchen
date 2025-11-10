@@ -208,17 +208,61 @@ See [DATABASE_SETUP_GUIDE.md](./DATABASE_SETUP_GUIDE.md) for detailed database c
 - Type-safe database queries with Drizzle ORM
 
 ### Testing
+
+#### Quick Start
 Run the test suite:
 ```bash
 npm test
 ```
 
+#### Local Test Setup
+
+Tests require a PostgreSQL database connection. You have two options:
+
+**Option 1: Use Default (Quick Start)**
+Tests will automatically use `postgresql://localhost:5432/myrecipekitchen_test` if no configuration is provided.
+
+**Option 2: Custom Configuration (Recommended)**
+1. Copy the example file:
+   ```bash
+   cp .env.test.example .env.test
+   ```
+
+2. Edit `.env.test` with your test database credentials:
+   ```
+   DATABASE_URL=postgresql://username:password@localhost:5432/myrecipekitchen_test
+   ```
+
+3. Create the test database:
+   ```bash
+   # PostgreSQL command
+   createdb myrecipekitchen_test
+
+   # Or using psql
+   psql -c "CREATE DATABASE myrecipekitchen_test;"
+   ```
+
+4. Run database migrations:
+   ```bash
+   DATABASE_URL=postgresql://localhost:5432/myrecipekitchen_test npm run db:push
+   ```
+
+**Note:** Tests use environment-based data isolation. All test data is tagged with `environment='test'` and automatically cleaned up after each test.
+
+#### Test Commands
+- `npm test` - Run all tests once
+- `npm run test:watch` - Run tests in watch mode
+- `npm run test:ui` - Open interactive Vitest UI
+- `npm run test:coverage` - Generate coverage report
+
+#### Test Coverage
 Tests cover:
-- Authentication flows
-- Recipe CRUD operations
-- Photo upload handling
-- Database operations
-- API endpoints
+- Authentication flows (password hashing, login/logout, session management)
+- Recipe CRUD operations (create, read, update, delete)
+- Photo upload handling (local storage, object storage)
+- Database operations (user management, environment isolation)
+- API endpoints (authentication required, authorization checks)
+- Data validation (input validation, constraints)
 
 ### Mobile Compatibility
 The application includes special handling for mobile devices:

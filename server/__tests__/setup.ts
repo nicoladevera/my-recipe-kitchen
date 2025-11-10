@@ -1,12 +1,11 @@
+// Test setup - database cleanup and lifecycle management
+// Note: Environment variables are configured in env-setup.ts which runs first
+
 import { beforeAll, afterAll, beforeEach } from 'vitest';
 import { pool } from '../db';
 import { db } from '../db';
 import { users, recipes } from '@shared/schema';
 import { sql } from 'drizzle-orm';
-
-// Set test environment
-process.env.NODE_ENV = 'test';
-process.env.SESSION_SECRET = 'test-session-secret-for-testing-only';
 
 beforeAll(async () => {
   // Ensure we're in test environment

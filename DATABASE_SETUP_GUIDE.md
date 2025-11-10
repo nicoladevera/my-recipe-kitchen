@@ -62,11 +62,60 @@ After setup, verify isolation by:
 2. Making changes in production - should not affect development
 3. Checking user counts in both environments
 
+## Test Environment Setup
+
+The application also includes a **test environment** for running automated tests. Tests use environment-based data isolation with `environment='test'` tagging.
+
+### Test Database Configuration
+
+**Option 1: Default Configuration (Quick Start)**
+Tests will automatically use `postgresql://localhost:5432/myrecipekitchen_test` if no DATABASE_URL is set. This works for local development with a standard PostgreSQL installation.
+
+**Option 2: Custom Configuration (Recommended)**
+1. Copy the example configuration:
+   ```bash
+   cp .env.test.example .env.test
+   ```
+
+2. Edit `.env.test` with your test database credentials:
+   ```
+   DATABASE_URL=postgresql://username:password@localhost:5432/myrecipekitchen_test
+   ```
+
+3. Create the test database:
+   ```bash
+   createdb myrecipekitchen_test
+   ```
+
+4. Run migrations:
+   ```bash
+   DATABASE_URL=postgresql://localhost:5432/myrecipekitchen_test npm run db:push
+   ```
+
+### Test Database Characteristics
+
+- **Isolated**: Uses `environment='test'` for all data
+- **Auto-cleanup**: Test data is automatically deleted after each test
+- **Separate**: Never shares data with development or production
+- **Local**: Typically runs on localhost for fast test execution
+
+### CI/CD Test Environment
+
+GitHub Actions workflows use `DATABASE_URL` from repository secrets for CI test execution. No additional configuration is needed for CI.
+
 ## Troubleshooting
 
+### Application Startup Issues
 If the application fails to start:
 - Ensure both `DATABASE_URL_DEV` and `DATABASE_URL_PROD` are set
 - Check that the URLs are valid PostgreSQL connection strings
 - Verify the databases are accessible and properly configured
+
+### Test Execution Issues
+If tests fail to run:
+- Ensure PostgreSQL is running locally
+- Verify the test database exists: `psql -l | grep myrecipekitchen_test`
+- Check database credentials in `.env.test` (if using custom configuration)
+- Ensure database schema is up to date: run `db:push` with test DATABASE_URL
 
 Your application now has true database environment separation with all existing data preserved!
