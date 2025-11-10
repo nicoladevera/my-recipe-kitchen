@@ -8,25 +8,31 @@ import { storage } from "./storage";
 import { insertRecipeSchema } from "@shared/schema";
 import { z } from "zod";
 import { setupAuth } from "./auth";
+import { fromError } from "zod-validation-error";
 
 // Multer upload middleware is imported from object-storage.ts
 
 // Middleware to check if user owns a recipe
 const requireRecipeOwnership = async (req: Request, res: Response, next: NextFunction) => {
-  if (!req.isAuthenticated()) {
-    return res.status(401).json({ error: "Authentication required" });
+  try {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ error: "Authentication required" });
+    }
+
+    const recipe = await storage.getRecipe(req.params.id);
+    if (!recipe) {
+      return res.status(404).json({ error: "Recipe not found" });
+    }
+
+    if (recipe.userId !== req.user!.id) {
+      return res.status(403).json({ error: "Not authorized to modify this recipe" });
+    }
+
+    next();
+  } catch (error) {
+    console.error('Error in requireRecipeOwnership middleware:', error);
+    return res.status(500).json({ error: "Failed to verify recipe ownership" });
   }
-  
-  const recipe = await storage.getRecipe(req.params.id);
-  if (!recipe) {
-    return res.status(404).json({ error: "Recipe not found" });
-  }
-  
-  if (recipe.userId !== req.user!.id) {
-    return res.status(403).json({ error: "Not authorized to modify this recipe" });
-  }
-  
-  next();
 };
 
 // Middleware to require authentication
@@ -135,15 +141,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Create new recipe (requires authentication)
   app.post("/api/recipes", requireAuth, upload.single('photo'), async (req, res) => {
     try {
-      // Parse numbers from form data strings
+      // Ensure numbers are properly typed (handles both JSON numbers and form data strings)
       const formData = {
         ...req.body,
-        cookTime: parseInt(req.body.cookTime),
-        servings: parseInt(req.body.servings),
+        cookTime: typeof req.body.cookTime === 'number' ? req.body.cookTime : parseInt(req.body.cookTime),
+        servings: typeof req.body.servings === 'number' ? req.body.servings : parseInt(req.body.servings),
       };
-      
-      const recipeData = insertRecipeSchema.parse(formData);
-      
+
+      // Validate input
+      const validationResult = insertRecipeSchema.safeParse(formData);
+      if (!validationResult.success) {
+        const validationError = fromError(validationResult.error);
+        return res.status(400).json({ error: validationError.message });
+      }
+
+      const recipeData = validationResult.data;
+
       // If photo was uploaded, try Object Storage first, fallback to local storage
       if (req.file) {
         try {
@@ -156,28 +169,51 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
-      const recipe = await storage.createRecipe(recipeData, req.user!.id);
+      // Ensure req.user exists (should be guaranteed by requireAuth, but be defensive)
+      if (!req.user || !req.user.id) {
+        console.error('User authentication issue: req.user =', req.user);
+        return res.status(401).json({ error: "Authentication required" });
+      }
+
+      const recipe = await storage.createRecipe(recipeData, req.user.id);
+
+      // Verify recipe is committed and visible across connections (important for serverless DB)
+      const verifiedRecipe = await storage.getRecipe(recipe.id);
+      if (!verifiedRecipe) {
+        console.error('Recipe creation failed - recipe not found after insert:', recipe.id);
+        return res.status(500).json({ error: "Recipe creation failed - not confirmed" });
+      }
+
+      // Small delay to ensure transaction is visible across all database connections
+      // This is necessary for serverless databases with connection pooling (like Neon)
+      await new Promise(resolve => setTimeout(resolve, 100));
+
       res.status(201).json(recipe);
     } catch (error) {
       console.error('Recipe creation error:', error);
-      if (error instanceof z.ZodError) {
-        res.status(400).json({ error: "Invalid recipe data", details: error.errors });
-      } else {
-        res.status(500).json({ error: "Failed to create recipe", details: error instanceof Error ? error.message : "Unknown error" });
-      }
+      console.error('Request body:', req.body);
+      console.error('User:', req.user);
+      res.status(500).json({ error: "Failed to create recipe", details: error instanceof Error ? error.message : "Unknown error" });
     }
   });
 
   // Update recipe (requires ownership)
   app.patch("/api/recipes/:id", requireRecipeOwnership, upload.single('photo'), async (req, res) => {
     try {
-      const updates = insertRecipeSchema.partial().parse(req.body);
-      
+      // Validate input
+      const validationResult = insertRecipeSchema.partial().safeParse(req.body);
+      if (!validationResult.success) {
+        const validationError = fromError(validationResult.error);
+        return res.status(400).json({ error: validationError.message });
+      }
+
+      const updates = validationResult.data;
+
       // If photo was uploaded, store in Object Storage and delete old photo
       if (req.file) {
         // Get the existing recipe to check for old photo
         const existingRecipe = await storage.getRecipe(req.params.id);
-        
+
         // Upload new photo - try Object Storage first, fallback to local storage
         try {
           updates.photo = await uploadToObjectStorage(req.file);
@@ -187,7 +223,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           updates.photo = await uploadToMemory(req.file);
           console.log('Fallback upload successful:', updates.photo);
         }
-        
+
         // Delete old photo from Object Storage if it exists (not from external URLs or uploads)
         if (existingRecipe?.photo && existingRecipe.photo.startsWith('/objects/')) {
           await deleteFromObjectStorage(existingRecipe.photo);
@@ -201,11 +237,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(recipe);
     } catch (error) {
       console.error('Recipe update error:', error);
-      if (error instanceof z.ZodError) {
-        res.status(400).json({ error: "Invalid update data", details: error.errors });
-      } else {
-        res.status(500).json({ error: "Failed to update recipe", details: error instanceof Error ? error.message : "Unknown error" });
-      }
+      res.status(500).json({ error: "Failed to update recipe", details: error instanceof Error ? error.message : "Unknown error" });
     }
   });
 
@@ -274,6 +306,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!recipe) {
         return res.status(404).json({ error: "Recipe not found" });
       }
+
+      // Small delay to ensure transaction is visible across all database connections
+      // This is necessary for serverless databases with connection pooling (like Neon)
+      await new Promise(resolve => setTimeout(resolve, 50));
+
       res.json(recipe);
     } catch (error) {
       res.status(500).json({ error: "Failed to add cooking log" });

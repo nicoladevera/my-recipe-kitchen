@@ -2,30 +2,37 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { storage } from '../storage';
 import { hashPassword } from '../auth';
 
+// Helper to create unique username for each test
+function uniqueUsername(base: string): string {
+  return `${base}_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+}
+
 describe('User Storage Operations (HIGH)', () => {
   describe('createUser', () => {
     it('should create user with hashed password', async () => {
+      const username = uniqueUsername('testuser');
       const hashedPassword = await hashPassword('testpassword');
       const user = await storage.createUser({
-        username: 'testuser',
-        email: 'test@example.com',
+        username: username,
+        email: `${username}@example.com`,
         password: hashedPassword,
         displayName: 'Test User'
       });
 
       expect(user.id).toBeDefined();
-      expect(user.username).toBe('testuser');
-      expect(user.email).toBe('test@example.com');
+      expect(user.username).toBe(username);
+      expect(user.email).toBe(`${username}@example.com`);
       expect(user.displayName).toBe('Test User');
       expect(user.password).toBe(hashedPassword);
       expect(user.environment).toBe('test');
     });
 
     it('should set timestamps on creation', async () => {
+      const username = uniqueUsername('timestampuser');
       const hashedPassword = await hashPassword('password123');
       const user = await storage.createUser({
-        username: 'timestampuser',
-        email: 'timestamp@example.com',
+        username: username,
+        email: `${username}@example.com`,
         password: hashedPassword
       });
 
@@ -36,10 +43,11 @@ describe('User Storage Operations (HIGH)', () => {
 
   describe('getUser', () => {
     it('should retrieve user by ID', async () => {
+      const username = uniqueUsername('getuser');
       const hashedPassword = await hashPassword('password123');
       const created = await storage.createUser({
-        username: 'getuser',
-        email: 'get@example.com',
+        username: username,
+        email: `${username}@example.com`,
         password: hashedPassword
       });
 
@@ -47,7 +55,7 @@ describe('User Storage Operations (HIGH)', () => {
 
       expect(user).toBeDefined();
       expect(user!.id).toBe(created.id);
-      expect(user!.username).toBe('getuser');
+      expect(user!.username).toBe(username);
     });
 
     it('should return undefined for non-existent user', async () => {
@@ -56,10 +64,11 @@ describe('User Storage Operations (HIGH)', () => {
     });
 
     it('should filter by environment', async () => {
+      const username = uniqueUsername('envuser');
       const hashedPassword = await hashPassword('password123');
       const created = await storage.createUser({
-        username: 'envuser',
-        email: 'env@example.com',
+        username: username,
+        email: `${username}@example.com`,
         password: hashedPassword
       });
 
@@ -71,18 +80,19 @@ describe('User Storage Operations (HIGH)', () => {
 
   describe('getUserByUsername', () => {
     it('should retrieve user by username', async () => {
+      const username = uniqueUsername('findme');
       const hashedPassword = await hashPassword('password123');
       await storage.createUser({
-        username: 'findme',
-        email: 'findme@example.com',
+        username: username,
+        email: `${username}@example.com`,
         password: hashedPassword
       });
 
-      const user = await storage.getUserByUsername('findme');
+      const user = await storage.getUserByUsername(username);
 
       expect(user).toBeDefined();
-      expect(user!.username).toBe('findme');
-      expect(user!.email).toBe('findme@example.com');
+      expect(user!.username).toBe(username);
+      expect(user!.email).toBe(`${username}@example.com`);
     });
 
     it('should return undefined for non-existent username', async () => {
@@ -91,15 +101,16 @@ describe('User Storage Operations (HIGH)', () => {
     });
 
     it('should be case sensitive', async () => {
+      const username = uniqueUsername('CaseSensitive');
       const hashedPassword = await hashPassword('password123');
       await storage.createUser({
-        username: 'CaseSensitive',
-        email: 'case@example.com',
+        username: username,
+        email: `${username}@example.com`,
         password: hashedPassword
       });
 
-      const exact = await storage.getUserByUsername('CaseSensitive');
-      const wrong = await storage.getUserByUsername('casesensitive');
+      const exact = await storage.getUserByUsername(username);
+      const wrong = await storage.getUserByUsername(username.toLowerCase());
 
       expect(exact).toBeDefined();
       expect(wrong).toBeUndefined();
@@ -108,18 +119,20 @@ describe('User Storage Operations (HIGH)', () => {
 
   describe('getUserByEmail', () => {
     it('should retrieve user by email', async () => {
+      const username = uniqueUsername('emailuser');
+      const email = `unique_${Date.now()}@example.com`;
       const hashedPassword = await hashPassword('password123');
       await storage.createUser({
-        username: 'emailuser',
-        email: 'unique@example.com',
+        username: username,
+        email: email,
         password: hashedPassword
       });
 
-      const user = await storage.getUserByEmail('unique@example.com');
+      const user = await storage.getUserByEmail(email);
 
       expect(user).toBeDefined();
-      expect(user!.email).toBe('unique@example.com');
-      expect(user!.username).toBe('emailuser');
+      expect(user!.email).toBe(email);
+      expect(user!.username).toBe(username);
     });
 
     it('should return undefined for non-existent email', async () => {
@@ -130,29 +143,33 @@ describe('User Storage Operations (HIGH)', () => {
 
   describe('updateUser', () => {
     it('should update user fields', async () => {
+      const username = uniqueUsername('updateuser');
+      const email = `${username}@example.com`;
       const hashedPassword = await hashPassword('password123');
       const created = await storage.createUser({
-        username: 'updateuser',
-        email: 'update@example.com',
+        username: username,
+        email: email,
         password: hashedPassword
       });
 
+      const newUsername = uniqueUsername('newusername');
       const updated = await storage.updateUser(created.id, {
-        username: 'newusername',
+        username: newUsername,
         displayName: 'New Display Name'
       });
 
       expect(updated).toBeDefined();
-      expect(updated!.username).toBe('newusername');
+      expect(updated!.username).toBe(newUsername);
       expect(updated!.displayName).toBe('New Display Name');
-      expect(updated!.email).toBe('update@example.com'); // Unchanged
+      expect(updated!.email).toBe(email); // Unchanged
     });
 
     it('should update updatedAt timestamp', async () => {
+      const username = uniqueUsername('timestampupdate');
       const hashedPassword = await hashPassword('password123');
       const created = await storage.createUser({
-        username: 'timestampupdate',
-        email: 'tsupdate@example.com',
+        username: username,
+        email: `${username}@example.com`,
         password: hashedPassword
       });
 
@@ -179,11 +196,12 @@ describe('User Storage Operations (HIGH)', () => {
 
   describe('updateUserPassword', () => {
     it('should update password with correct current password', async () => {
+      const username = uniqueUsername('passupdate');
       const currentPassword = 'oldpassword123';
       const hashedPassword = await hashPassword(currentPassword);
       const user = await storage.createUser({
-        username: 'passupdate',
-        email: 'passupdate@example.com',
+        username: username,
+        email: `${username}@example.com`,
         password: hashedPassword
       });
 
@@ -201,10 +219,11 @@ describe('User Storage Operations (HIGH)', () => {
     });
 
     it('should reject incorrect current password', async () => {
+      const username = uniqueUsername('wrongpass');
       const hashedPassword = await hashPassword('correctpassword');
       const user = await storage.createUser({
-        username: 'wrongpass',
-        email: 'wrongpass@example.com',
+        username: username,
+        email: `${username}@example.com`,
         password: hashedPassword
       });
 
@@ -233,13 +252,20 @@ describe('Recipe Storage Operations (HIGH)', () => {
   let userId: string;
 
   beforeEach(async () => {
+    const username = uniqueUsername('recipeowner');
     const hashedPassword = await hashPassword('password123');
     const user = await storage.createUser({
-      username: 'recipeowner',
-      email: 'recipeowner@example.com',
+      username: username,
+      email: `${username}@example.com`,
       password: hashedPassword
     });
     userId = user.id;
+
+    // Verify user exists to ensure database commit
+    const verifiedUser = await storage.getUser(userId);
+    if (!verifiedUser) {
+      throw new Error('User creation failed - user not found after insert');
+    }
   });
 
   describe('createRecipe', () => {
@@ -387,10 +413,11 @@ describe('Recipe Storage Operations (HIGH)', () => {
     });
 
     it('should return empty array when user has no recipes', async () => {
+      const username = uniqueUsername('norecipes');
       const hashedPassword = await hashPassword('password123');
       const newUser = await storage.createUser({
-        username: 'norecipes',
-        email: 'norecipes@example.com',
+        username: username,
+        email: `${username}@example.com`,
         password: hashedPassword
       });
 
@@ -425,10 +452,11 @@ describe('Recipe Storage Operations (HIGH)', () => {
     });
 
     it('should verify ownership', async () => {
+      const username = uniqueUsername('otheruser');
       const hashedPassword = await hashPassword('password123');
       const otherUser = await storage.createUser({
-        username: 'otheruser',
-        email: 'other@example.com',
+        username: username,
+        email: `${username}@example.com`,
         password: hashedPassword
       });
 
@@ -483,10 +511,11 @@ describe('Recipe Storage Operations (HIGH)', () => {
     });
 
     it('should verify ownership', async () => {
+      const username = uniqueUsername('deleteother');
       const hashedPassword = await hashPassword('password123');
       const otherUser = await storage.createUser({
-        username: 'deleteother',
-        email: 'deleteother@example.com',
+        username: username,
+        email: `${username}@example.com`,
         password: hashedPassword
       });
 
@@ -604,10 +633,11 @@ describe('Recipe Storage Operations (HIGH)', () => {
     });
 
     it('should verify ownership', async () => {
+      const username = uniqueUsername('logother');
       const hashedPassword = await hashPassword('password123');
       const otherUser = await storage.createUser({
-        username: 'logother',
-        email: 'logother@example.com',
+        username: username,
+        email: `${username}@example.com`,
         password: hashedPassword
       });
 
@@ -737,10 +767,11 @@ describe('Recipe Storage Operations (HIGH)', () => {
     });
 
     it('should verify ownership', async () => {
+      const username = uniqueUsername('removeother');
       const hashedPassword = await hashPassword('password123');
       const otherUser = await storage.createUser({
-        username: 'removeother',
-        email: 'removeother@example.com',
+        username: username,
+        email: `${username}@example.com`,
         password: hashedPassword
       });
 
