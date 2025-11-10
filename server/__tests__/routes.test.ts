@@ -25,6 +25,16 @@ async function createAuthenticatedUser(app: express.Express, username: string) {
       displayName: username
     });
 
+  if (response.status !== 201) {
+    console.error('Failed to create user:', response.status, response.body);
+    throw new Error(`User registration failed with status ${response.status}: ${JSON.stringify(response.body)}`);
+  }
+
+  if (!response.body.id) {
+    console.error('Registration response missing user ID:', response.body);
+    throw new Error('Registration succeeded but user ID is missing from response');
+  }
+
   return {
     user: response.body,
     cookies: response.headers['set-cookie']

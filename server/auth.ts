@@ -5,9 +5,10 @@ import session from "express-session";
 import { scrypt, randomBytes, timingSafeEqual } from "crypto";
 import { promisify } from "util";
 import { storage } from "./storage";
-import { User as SelectUser } from "@shared/schema";
+import { User as SelectUser, insertUserSchema } from "@shared/schema";
 import connectPg from "connect-pg-simple";
 import { pool } from "./db";
+import { fromError } from "zod-validation-error";
 
 declare global {
   namespace Express {
@@ -85,7 +86,14 @@ export function setupAuth(app: Express) {
   // Register endpoint
   app.post("/api/register", async (req, res, next) => {
     try {
-      const { username, email, password, displayName } = req.body;
+      // Validate input against schema
+      const validationResult = insertUserSchema.safeParse(req.body);
+      if (!validationResult.success) {
+        const validationError = fromError(validationResult.error);
+        return res.status(400).json({ error: validationError.message });
+      }
+
+      const { username, email, password, displayName } = validationResult.data;
 
       // Check if username already exists
       const existingUsername = await storage.getUserByUsername(username);

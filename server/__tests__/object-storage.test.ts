@@ -143,7 +143,7 @@ describe('File Upload Operations (HIGH)', () => {
       expect(typeof fileFilter).toBe('function');
     });
 
-    it('should accept jpeg files', (done) => {
+    it('should accept jpeg files', async () => {
       const fileFilter = (upload as any).fileFilter;
       const mockReq = {};
       const mockFile = {
@@ -159,14 +159,20 @@ describe('File Upload Operations (HIGH)', () => {
         path: ''
       };
 
-      fileFilter(mockReq, mockFile, (error: any, accepted: boolean) => {
-        expect(error).toBe(null);
-        expect(accepted).toBe(true);
-        done();
+      await new Promise<void>((resolve, reject) => {
+        fileFilter(mockReq, mockFile, (error: any, accepted: boolean) => {
+          try {
+            expect(error).toBe(null);
+            expect(accepted).toBe(true);
+            resolve();
+          } catch (e) {
+            reject(e);
+          }
+        });
       });
     });
 
-    it('should accept jpg files', (done) => {
+    it('should accept jpg files', async () => {
       const fileFilter = (upload as any).fileFilter;
       const mockReq = {};
       const mockFile = {
@@ -182,14 +188,20 @@ describe('File Upload Operations (HIGH)', () => {
         path: ''
       };
 
-      fileFilter(mockReq, mockFile, (error: any, accepted: boolean) => {
-        expect(error).toBe(null);
-        expect(accepted).toBe(true);
-        done();
+      await new Promise<void>((resolve, reject) => {
+        fileFilter(mockReq, mockFile, (error: any, accepted: boolean) => {
+          try {
+            expect(error).toBe(null);
+            expect(accepted).toBe(true);
+            resolve();
+          } catch (e) {
+            reject(e);
+          }
+        });
       });
     });
 
-    it('should accept png files', (done) => {
+    it('should accept png files', async () => {
       const fileFilter = (upload as any).fileFilter;
       const mockReq = {};
       const mockFile = {
@@ -205,14 +217,20 @@ describe('File Upload Operations (HIGH)', () => {
         path: ''
       };
 
-      fileFilter(mockReq, mockFile, (error: any, accepted: boolean) => {
-        expect(error).toBe(null);
-        expect(accepted).toBe(true);
-        done();
+      await new Promise<void>((resolve, reject) => {
+        fileFilter(mockReq, mockFile, (error: any, accepted: boolean) => {
+          try {
+            expect(error).toBe(null);
+            expect(accepted).toBe(true);
+            resolve();
+          } catch (e) {
+            reject(e);
+          }
+        });
       });
     });
 
-    it('should accept webp files', (done) => {
+    it('should accept webp files', async () => {
       const fileFilter = (upload as any).fileFilter;
       const mockReq = {};
       const mockFile = {
@@ -228,14 +246,20 @@ describe('File Upload Operations (HIGH)', () => {
         path: ''
       };
 
-      fileFilter(mockReq, mockFile, (error: any, accepted: boolean) => {
-        expect(error).toBe(null);
-        expect(accepted).toBe(true);
-        done();
+      await new Promise<void>((resolve, reject) => {
+        fileFilter(mockReq, mockFile, (error: any, accepted: boolean) => {
+          try {
+            expect(error).toBe(null);
+            expect(accepted).toBe(true);
+            resolve();
+          } catch (e) {
+            reject(e);
+          }
+        });
       });
     });
 
-    it('should reject pdf files', (done) => {
+    it('should reject pdf files', async () => {
       const fileFilter = (upload as any).fileFilter;
       const mockReq = {};
       const mockFile = {
@@ -251,14 +275,20 @@ describe('File Upload Operations (HIGH)', () => {
         path: ''
       };
 
-      fileFilter(mockReq, mockFile, (error: any, accepted: boolean) => {
-        expect(error).toBeDefined();
-        expect(error.message).toContain('Only JPEG, PNG and WebP images are allowed');
-        done();
+      await new Promise<void>((resolve, reject) => {
+        fileFilter(mockReq, mockFile, (error: any, accepted: boolean) => {
+          try {
+            expect(error).toBeDefined();
+            expect(error.message).toContain('Only JPEG, PNG and WebP images are allowed');
+            resolve();
+          } catch (e) {
+            reject(e);
+          }
+        });
       });
     });
 
-    it('should reject exe files', (done) => {
+    it('should reject exe files', async () => {
       const fileFilter = (upload as any).fileFilter;
       const mockReq = {};
       const mockFile = {
@@ -274,14 +304,20 @@ describe('File Upload Operations (HIGH)', () => {
         path: ''
       };
 
-      fileFilter(mockReq, mockFile, (error: any, accepted: boolean) => {
-        expect(error).toBeDefined();
-        expect(error.message).toContain('Only JPEG, PNG and WebP images are allowed');
-        done();
+      await new Promise<void>((resolve, reject) => {
+        fileFilter(mockReq, mockFile, (error: any, accepted: boolean) => {
+          try {
+            expect(error).toBeDefined();
+            expect(error.message).toContain('Only JPEG, PNG and WebP images are allowed');
+            resolve();
+          } catch (e) {
+            reject(e);
+          }
+        });
       });
     });
 
-    it('should reject svg files', (done) => {
+    it('should reject svg files', async () => {
       const fileFilter = (upload as any).fileFilter;
       const mockReq = {};
       const mockFile = {
@@ -297,13 +333,19 @@ describe('File Upload Operations (HIGH)', () => {
         path: ''
       };
 
-      fileFilter(mockReq, mockFile, (error: any, accepted: boolean) => {
-        expect(error).toBeDefined();
-        done();
+      await new Promise<void>((resolve, reject) => {
+        fileFilter(mockReq, mockFile, (error: any, accepted: boolean) => {
+          try {
+            expect(error).toBeDefined();
+            resolve();
+          } catch (e) {
+            reject(e);
+          }
+        });
       });
     });
 
-    it('should validate both mimetype and extension', (done) => {
+    it('should validate both mimetype and extension', async () => {
       const fileFilter = (upload as any).fileFilter;
       const mockReq = {};
 
@@ -321,16 +363,22 @@ describe('File Upload Operations (HIGH)', () => {
         path: ''
       };
 
-      fileFilter(mockReq, mockFile, (error: any, accepted: boolean) => {
-        expect(error).toBeDefined();
-        done();
+      await new Promise<void>((resolve, reject) => {
+        fileFilter(mockReq, mockFile, (error: any, accepted: boolean) => {
+          try {
+            expect(error).toBeDefined();
+            resolve();
+          } catch (e) {
+            reject(e);
+          }
+        });
       });
     });
   });
 });
 
 describe('File Upload Integration (HIGH)', () => {
-  it('should handle case-insensitive file extensions', (done) => {
+  it('should handle case-insensitive file extensions', async () => {
     const fileFilter = (upload as any).fileFilter;
     const mockReq = {};
     const mockFile = {
@@ -346,10 +394,16 @@ describe('File Upload Integration (HIGH)', () => {
       path: ''
     };
 
-    fileFilter(mockReq, mockFile, (error: any, accepted: boolean) => {
-      expect(error).toBe(null);
-      expect(accepted).toBe(true);
-      done();
+    await new Promise<void>((resolve, reject) => {
+      fileFilter(mockReq, mockFile, (error: any, accepted: boolean) => {
+        try {
+          expect(error).toBe(null);
+          expect(accepted).toBe(true);
+          resolve();
+        } catch (e) {
+          reject(e);
+        }
+      });
     });
   });
 
