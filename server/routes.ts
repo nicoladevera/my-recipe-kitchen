@@ -136,11 +136,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Create new recipe (requires authentication)
   app.post("/api/recipes", requireAuth, upload.single('photo'), async (req, res) => {
     try {
-      // Parse numbers from form data strings
+      // Ensure numbers are properly typed (handles both JSON numbers and form data strings)
       const formData = {
         ...req.body,
-        cookTime: parseInt(req.body.cookTime),
-        servings: parseInt(req.body.servings),
+        cookTime: typeof req.body.cookTime === 'number' ? req.body.cookTime : parseInt(req.body.cookTime),
+        servings: typeof req.body.servings === 'number' ? req.body.servings : parseInt(req.body.servings),
       };
 
       // Validate input
@@ -164,10 +164,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
-      const recipe = await storage.createRecipe(recipeData, req.user!.id);
+      // Ensure req.user exists (should be guaranteed by requireAuth, but be defensive)
+      if (!req.user || !req.user.id) {
+        console.error('User authentication issue: req.user =', req.user);
+        return res.status(401).json({ error: "Authentication required" });
+      }
+
+      const recipe = await storage.createRecipe(recipeData, req.user.id);
       res.status(201).json(recipe);
     } catch (error) {
       console.error('Recipe creation error:', error);
+      console.error('Request body:', req.body);
+      console.error('User:', req.user);
       res.status(500).json({ error: "Failed to create recipe", details: error instanceof Error ? error.message : "Unknown error" });
     }
   });
