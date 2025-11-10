@@ -63,6 +63,7 @@ export const insertUserSchema = createInsertSchema(users).omit({
   updatedAt: true,
   passwordResetToken: true,
   passwordResetExpires: true,
+  environment: true,
 }).extend({
   username: z.string().min(3).max(50).regex(/^[a-zA-Z0-9_-]+$/, "Username can only contain letters, numbers, underscores, and hyphens"),
   email: z.string().email(),
@@ -74,6 +75,8 @@ export const insertRecipeSchema = createInsertSchema(recipes).omit({
   userId: true,
   createdAt: true,
   rating: true,
+  environment: true,
+  cookingLog: true,
 }).extend({
   cookTime: z.number().min(1).max(1440),
   servings: z.number().min(1).max(50),
