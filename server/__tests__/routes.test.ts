@@ -234,6 +234,9 @@ describe('Recipe CRUD Operations (CRITICAL)', () => {
 
       const recipeId = createResponse.body.id;
 
+      // Wait for recipe to propagate before updating it
+      await waitForPropagation();
+
       const response = await request(app)
         .patch(`/api/recipes/${recipeId}`)
         .set('Cookie', cookies)
@@ -264,6 +267,9 @@ describe('Recipe CRUD Operations (CRITICAL)', () => {
         });
 
       const recipeId = createResponse.body.id;
+
+      // Wait for recipe to propagate before attempting to access it
+      await waitForPropagation();
 
       const response = await request(app)
         .patch(`/api/recipes/${recipeId}`)
@@ -333,6 +339,9 @@ describe('Recipe CRUD Operations (CRITICAL)', () => {
 
       const recipeId = createResponse.body.id;
 
+      // Wait for recipe to propagate before deleting it
+      await waitForPropagation();
+
       const response = await request(app)
         .delete(`/api/recipes/${recipeId}`)
         .set('Cookie', cookies);
@@ -361,6 +370,9 @@ describe('Recipe CRUD Operations (CRITICAL)', () => {
         });
 
       const recipeId = createResponse.body.id;
+
+      // Wait for recipe to propagate before attempting to delete it
+      await waitForPropagation();
 
       const response = await request(app)
         .delete(`/api/recipes/${recipeId}`);
@@ -435,6 +447,9 @@ describe('Cooking Log Operations (CRITICAL)', () => {
 
       const recipeId = createResponse.body.id;
 
+      // Wait for recipe to propagate before adding cooking log
+      await waitForPropagation();
+
       const response = await request(app)
         .post(`/api/recipes/${recipeId}/cooking-log`)
         .set('Cookie', cookies)
@@ -467,6 +482,9 @@ describe('Cooking Log Operations (CRITICAL)', () => {
         });
 
       const recipeId = createResponse.body.id;
+
+      // Wait for recipe to propagate before adding cooking logs
+      await waitForPropagation();
 
       // Add first log (rating: 4)
       await request(app)
@@ -511,6 +529,9 @@ describe('Cooking Log Operations (CRITICAL)', () => {
 
       const recipeId = createResponse.body.id;
 
+      // Wait for recipe to propagate before attempting to add cooking log
+      await waitForPropagation();
+
       const response = await request(app)
         .post(`/api/recipes/${recipeId}/cooking-log`)
         .set('Cookie', hacker.cookies)
@@ -540,6 +561,9 @@ describe('Cooking Log Operations (CRITICAL)', () => {
 
       const recipeId = createResponse.body.id;
 
+      // Wait for recipe to propagate before testing validation
+      await waitForPropagation();
+
       const response = await request(app)
         .post(`/api/recipes/${recipeId}/cooking-log`)
         .set('Cookie', cookies)
@@ -568,6 +592,9 @@ describe('Cooking Log Operations (CRITICAL)', () => {
         });
 
       const recipeId = createResponse.body.id;
+
+      // Wait for recipe to propagate before adding cooking logs
+      await waitForPropagation();
 
       // Add two log entries
       await request(app)
@@ -664,6 +691,9 @@ describe('Cooking Log Operations (CRITICAL)', () => {
 
       const recipeId = createResponse.body.id;
 
+      // Wait for recipe to propagate before adding cooking log
+      await waitForPropagation();
+
       await request(app)
         .post(`/api/recipes/${recipeId}/cooking-log`)
         .set('Cookie', owner.cookies)
@@ -696,6 +726,9 @@ describe('Cooking Log Operations (CRITICAL)', () => {
         });
 
       const recipeId = createResponse.body.id;
+
+      // Wait for recipe to propagate before attempting to delete cooking log
+      await waitForPropagation();
 
       const response = await request(app)
         .delete(`/api/recipes/${recipeId}/cooking-log/0`)
@@ -988,6 +1021,9 @@ describe('Security Tests (CRITICAL)', () => {
         });
 
       const recipeId = createResponse.body.id;
+
+      // Wait for recipe to propagate before attempting to access it
+      await waitForPropagation();
 
       // User2 tries to update it
       const updateResponse = await request(app)

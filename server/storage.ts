@@ -52,9 +52,6 @@ export class DatabaseStorage implements IStorage {
       throw new Error('User creation failed - no user returned from database');
     }
 
-    // Add small delay for serverless database propagation (Neon eventual consistency)
-    await new Promise(resolve => setTimeout(resolve, 50));
-
     return user;
   }
 
@@ -133,9 +130,6 @@ export class DatabaseStorage implements IStorage {
       })
       .returning();
 
-    // Add small delay for serverless database propagation (Neon eventual consistency)
-    await new Promise(resolve => setTimeout(resolve, 50));
-
     return recipe;
   }
 
@@ -178,9 +172,6 @@ export class DatabaseStorage implements IStorage {
       .where(and(eq(recipes.id, id), eq(recipes.userId, userId), eq(recipes.environment, currentEnv)))
       .returning();
 
-    // Add small delay for serverless database propagation (Neon eventual consistency)
-    await new Promise(resolve => setTimeout(resolve, 50));
-
     return updatedRecipe || undefined;
   }
 
@@ -210,9 +201,6 @@ export class DatabaseStorage implements IStorage {
       })
       .where(and(eq(recipes.id, id), eq(recipes.userId, userId), eq(recipes.environment, currentEnv)))
       .returning();
-
-    // Add small delay for serverless database propagation (Neon eventual consistency)
-    await new Promise(resolve => setTimeout(resolve, 50));
 
     return updatedRecipe || undefined;
   }
