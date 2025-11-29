@@ -53,7 +53,7 @@ export class DatabaseStorage implements IStorage {
     }
 
     // Add small delay for serverless database propagation (Neon eventual consistency)
-    await new Promise(resolve => setTimeout(resolve, 50));
+    await new Promise(resolve => setTimeout(resolve, 100));
 
     return user;
   }
@@ -134,7 +134,7 @@ export class DatabaseStorage implements IStorage {
       .returning();
 
     // Add small delay for serverless database propagation (Neon eventual consistency)
-    await new Promise(resolve => setTimeout(resolve, 50));
+    await new Promise(resolve => setTimeout(resolve, 100));
 
     return recipe;
   }
@@ -158,12 +158,20 @@ export class DatabaseStorage implements IStorage {
   }
 
   async addCookingLog(id: string, logEntry: CookingLogEntry, userId: string): Promise<Recipe | undefined> {
-    const recipe = await this.getRecipe(id);
+    // Add retry logic for serverless database read-after-write consistency
+    let recipe = await this.getRecipe(id);
+    let retries = 0;
+    while (!recipe && retries < 3) {
+      await new Promise(resolve => setTimeout(resolve, 50));
+      recipe = await this.getRecipe(id);
+      retries++;
+    }
+
     if (!recipe || recipe.userId !== userId) return undefined;
 
     const currentLog = recipe.cookingLog || [];
     const updatedLog = [logEntry, ...currentLog];
-    
+
     // Calculate new average rating from all cooking log entries
     const totalRatings = updatedLog.reduce((sum, entry) => sum + entry.rating, 0);
     const averageRating = Math.round(totalRatings / updatedLog.length);
@@ -178,14 +186,26 @@ export class DatabaseStorage implements IStorage {
       .where(and(eq(recipes.id, id), eq(recipes.userId, userId), eq(recipes.environment, currentEnv)))
       .returning();
 
-    // Add small delay for serverless database propagation (Neon eventual consistency)
-    await new Promise(resolve => setTimeout(resolve, 50));
+    if (!updatedRecipe) {
+      throw new Error('Failed to update cooking log - no recipe returned');
+    }
 
-    return updatedRecipe || undefined;
+    // Add small delay for serverless database propagation (Neon eventual consistency)
+    await new Promise(resolve => setTimeout(resolve, 100));
+
+    return updatedRecipe;
   }
 
   async removeCookingLog(id: string, logIndex: number, userId: string): Promise<Recipe | undefined> {
-    const recipe = await this.getRecipe(id);
+    // Add retry logic for serverless database read-after-write consistency
+    let recipe = await this.getRecipe(id);
+    let retries = 0;
+    while (!recipe && retries < 3) {
+      await new Promise(resolve => setTimeout(resolve, 50));
+      recipe = await this.getRecipe(id);
+      retries++;
+    }
+
     if (!recipe || recipe.userId !== userId || !recipe.cookingLog) return undefined;
 
     const currentLog = [...recipe.cookingLog];
@@ -193,7 +213,7 @@ export class DatabaseStorage implements IStorage {
 
     // Remove the log entry at the specified index
     currentLog.splice(logIndex, 1);
-    
+
     // Recalculate average rating from remaining entries
     let averageRating = 0;
     if (currentLog.length > 0) {
@@ -211,10 +231,14 @@ export class DatabaseStorage implements IStorage {
       .where(and(eq(recipes.id, id), eq(recipes.userId, userId), eq(recipes.environment, currentEnv)))
       .returning();
 
-    // Add small delay for serverless database propagation (Neon eventual consistency)
-    await new Promise(resolve => setTimeout(resolve, 50));
+    if (!updatedRecipe) {
+      throw new Error('Failed to remove cooking log - no recipe returned');
+    }
 
-    return updatedRecipe || undefined;
+    // Add small delay for serverless database propagation (Neon eventual consistency)
+    await new Promise(resolve => setTimeout(resolve, 100));
+
+    return updatedRecipe;
   }
 }
 
