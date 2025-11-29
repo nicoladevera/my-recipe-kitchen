@@ -198,6 +198,9 @@ describe('Recipe CRUD Operations (CRITICAL)', () => {
 
       const recipeId = createResponse.body.id;
 
+      // Wait for recipe to propagate before retrieving it
+      await waitForPropagation();
+
       const response = await request(app)
         .get(`/api/recipes/${recipeId}`);
 
@@ -287,6 +290,9 @@ describe('Recipe CRUD Operations (CRITICAL)', () => {
         });
 
       const recipeId = createResponse.body.id;
+
+      // Wait for recipe to propagate before attempting to modify it
+      await waitForPropagation();
 
       const response = await request(app)
         .patch(`/api/recipes/${recipeId}`)
