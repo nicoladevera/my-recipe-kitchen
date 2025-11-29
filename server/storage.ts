@@ -53,7 +53,7 @@ export class DatabaseStorage implements IStorage {
     }
 
     // Add small delay for serverless database propagation (Neon eventual consistency)
-    await new Promise(resolve => setTimeout(resolve, 100));
+    await new Promise(resolve => setTimeout(resolve, 25));
 
     return user;
   }
@@ -134,7 +134,7 @@ export class DatabaseStorage implements IStorage {
       .returning();
 
     // Add small delay for serverless database propagation (Neon eventual consistency)
-    await new Promise(resolve => setTimeout(resolve, 100));
+    await new Promise(resolve => setTimeout(resolve, 25));
 
     return recipe;
   }
@@ -179,7 +179,7 @@ export class DatabaseStorage implements IStorage {
       .returning();
 
     // Add small delay for serverless database propagation (Neon eventual consistency)
-    await new Promise(resolve => setTimeout(resolve, 100));
+    await new Promise(resolve => setTimeout(resolve, 25));
 
     return updatedRecipe || undefined;
   }
@@ -212,7 +212,7 @@ export class DatabaseStorage implements IStorage {
       .returning();
 
     // Add small delay for serverless database propagation (Neon eventual consistency)
-    await new Promise(resolve => setTimeout(resolve, 100));
+    await new Promise(resolve => setTimeout(resolve, 25));
 
     return updatedRecipe || undefined;
   }
