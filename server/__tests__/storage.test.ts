@@ -260,12 +260,6 @@ describe('Recipe Storage Operations (HIGH)', () => {
       password: hashedPassword
     });
     userId = user.id;
-
-    // Verify user exists to ensure database commit
-    const verifiedUser = await storage.getUser(userId);
-    if (!verifiedUser) {
-      throw new Error('User creation failed - user not found after insert');
-    }
   });
 
   describe('createRecipe', () => {
