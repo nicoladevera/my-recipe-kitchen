@@ -120,18 +120,35 @@ export class DatabaseStorage implements IStorage {
   async createRecipe(insertRecipe: InsertRecipe, userId: string): Promise<Recipe> {
     const currentEnv = getEnvironment();
 
-    const [recipe] = await db
-      .insert(recipes)
-      .values({
-        ...insertRecipe,
-        userId,
-        rating: 0,
-        cookingLog: [],
-        environment: currentEnv,
-      })
-      .returning();
+    // Retry logic for foreign key constraint violations (Neon serverless eventual consistency)
+    let lastError;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        const [recipe] = await db
+          .insert(recipes)
+          .values({
+            ...insertRecipe,
+            userId,
+            rating: 0,
+            cookingLog: [],
+            environment: currentEnv,
+          })
+          .returning();
 
-    return recipe;
+        return recipe;
+      } catch (error: any) {
+        // Only retry on foreign key constraint violations
+        if (error?.code === '23503' && attempt < 2) {
+          lastError = error;
+          // Exponential backoff: 25ms, 50ms
+          await new Promise(resolve => setTimeout(resolve, 25 * Math.pow(2, attempt)));
+          continue;
+        }
+        throw error;
+      }
+    }
+
+    throw lastError || new Error('Recipe creation failed');
   }
 
   async updateRecipe(id: string, updates: Partial<InsertRecipe>, userId: string): Promise<Recipe | undefined> {

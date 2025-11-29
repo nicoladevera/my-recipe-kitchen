@@ -260,9 +260,6 @@ describe('Recipe Storage Operations (HIGH)', () => {
       password: hashedPassword
     });
     userId = user.id;
-
-    // Brief delay to allow user to propagate for foreign key constraints
-    await new Promise(resolve => setTimeout(resolve, 75));
   });
 
   describe('createRecipe', () => {
