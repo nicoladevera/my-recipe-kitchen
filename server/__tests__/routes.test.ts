@@ -38,6 +38,9 @@ async function createAuthenticatedUser(app: express.Express, username: string) {
     throw new Error('Registration succeeded but user ID is missing from response');
   }
 
+  // Brief delay to allow user to propagate for foreign key constraints (50ms to avoid session timeout)
+  await new Promise(resolve => setTimeout(resolve, 50));
+
   return {
     user: response.body,
     cookies: response.headers['set-cookie'],
