@@ -46,7 +46,8 @@ async function createAuthenticatedUser(app: express.Express, username: string) {
 }
 
 // Helper to add small delay for serverless database consistency
-async function waitForPropagation(ms: number = 75) {
+// Increased to 100ms to handle both regular CI tests and coverage environment (with v8 instrumentation)
+async function waitForPropagation(ms: number = 100) {
   await new Promise(resolve => setTimeout(resolve, ms));
 }
 
