@@ -115,18 +115,6 @@ export function setupAuth(app: Express) {
         displayName,
       });
 
-      // Verify user is committed and visible across connections (important for serverless DB)
-      const verifiedUser = await storage.getUser(user.id);
-      if (!verifiedUser) {
-        console.error('User creation failed - user not found after insert:', user.id);
-        return res.status(500).json({ error: "Registration failed - user creation not confirmed" });
-      }
-
-      // Small delay to ensure transaction is visible across all database connections
-      // This is necessary for serverless databases with connection pooling (like Neon)
-      // Increased to 100ms to ensure all subsequent operations can see the user
-      await new Promise(resolve => setTimeout(resolve, 100));
-
       req.login(user, (err) => {
         if (err) return next(err);
         res.status(201).json({ id: user.id, username: user.username, email: user.email, displayName: user.displayName });

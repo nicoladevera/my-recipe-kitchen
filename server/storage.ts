@@ -47,6 +47,11 @@ export class DatabaseStorage implements IStorage {
       .insert(users)
       .values({ ...insertUser, environment: currentEnv })
       .returning();
+
+    if (!user || !user.id) {
+      throw new Error('User creation failed - no user returned from database');
+    }
+
     return user;
   }
 
