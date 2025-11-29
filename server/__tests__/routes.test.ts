@@ -38,6 +38,9 @@ async function createAuthenticatedUser(app: express.Express, username: string) {
     throw new Error('Registration succeeded but user ID is missing from response');
   }
 
+  // Wait for user to propagate before returning (critical for foreign key constraints)
+  await waitForPropagation();
+
   return {
     user: response.body,
     cookies: response.headers['set-cookie'],
