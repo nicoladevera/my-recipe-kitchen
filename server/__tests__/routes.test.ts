@@ -38,9 +38,6 @@ async function createAuthenticatedUser(app: express.Express, username: string) {
     throw new Error('Registration succeeded but user ID is missing from response');
   }
 
-  // Wait for user to propagate before returning (critical for foreign key constraints)
-  await waitForPropagation();
-
   return {
     user: response.body,
     cookies: response.headers['set-cookie'],
@@ -49,7 +46,7 @@ async function createAuthenticatedUser(app: express.Express, username: string) {
 }
 
 // Helper to add small delay for serverless database consistency
-async function waitForPropagation(ms: number = 100) {
+async function waitForPropagation(ms: number = 75) {
   await new Promise(resolve => setTimeout(resolve, ms));
 }
 

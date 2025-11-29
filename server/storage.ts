@@ -119,6 +119,10 @@ export class DatabaseStorage implements IStorage {
 
   async createRecipe(insertRecipe: InsertRecipe, userId: string): Promise<Recipe> {
     const currentEnv = getEnvironment();
+
+    // Small delay to ensure user_id foreign key is visible (Neon serverless eventual consistency)
+    await new Promise(resolve => setTimeout(resolve, 50));
+
     const [recipe] = await db
       .insert(recipes)
       .values({
