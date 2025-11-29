@@ -45,6 +45,11 @@ async function createAuthenticatedUser(app: express.Express, username: string) {
   };
 }
 
+// Helper to add small delay for serverless database consistency
+async function waitForPropagation(ms: number = 75) {
+  await new Promise(resolve => setTimeout(resolve, ms));
+}
+
 describe('Recipe CRUD Operations (CRITICAL)', () => {
   let app: express.Express;
 
@@ -376,6 +381,9 @@ describe('Recipe CRUD Operations (CRITICAL)', () => {
 
       const recipeId = createResponse.body.id;
 
+      // Wait for recipe to propagate before trying to access it
+      await waitForPropagation();
+
       const response = await request(app)
         .delete(`/api/recipes/${recipeId}`)
         .set('Cookie', hacker.cookies);
@@ -620,6 +628,9 @@ describe('Cooking Log Operations (CRITICAL)', () => {
           rating: 5
         });
 
+      // Wait for cooking logs to propagate
+      await waitForPropagation();
+
       // Average is 4, remove rating 3 entry
       const response = await request(app)
         .delete(`/api/recipes/${recipeId}/cooking-log/1`)
@@ -745,6 +756,9 @@ describe('User Profile Operations (CRITICAL)', () => {
           ingredients: 'Beef',
           instructions: 'Grill it'
         });
+
+      // Wait for recipes to propagate before querying
+      await waitForPropagation();
 
       const response = await request(app)
         .get(`/api/users/${username}/recipes`);
