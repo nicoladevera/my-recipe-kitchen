@@ -152,6 +152,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const validationResult = insertRecipeSchema.safeParse(formData);
       if (!validationResult.success) {
         const validationError = fromError(validationResult.error);
+        console.log('Recipe validation failed:', validationError.message);
         return res.status(400).json({ error: validationError.message });
       }
 
@@ -176,18 +177,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const recipe = await storage.createRecipe(recipeData, req.user.id);
-
-      // Verify recipe is committed and visible across connections (important for serverless DB)
-      const verifiedRecipe = await storage.getRecipe(recipe.id);
-      if (!verifiedRecipe) {
-        console.error('Recipe creation failed - recipe not found after insert:', recipe.id);
-        return res.status(500).json({ error: "Recipe creation failed - not confirmed" });
-      }
-
-      // Small delay to ensure transaction is visible across all database connections
-      // This is necessary for serverless databases with connection pooling (like Neon)
-      await new Promise(resolve => setTimeout(resolve, 100));
-
       res.status(201).json(recipe);
     } catch (error) {
       console.error('Recipe creation error:', error);
@@ -306,10 +295,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!recipe) {
         return res.status(404).json({ error: "Recipe not found" });
       }
-
-      // Small delay to ensure transaction is visible across all database connections
-      // This is necessary for serverless databases with connection pooling (like Neon)
-      await new Promise(resolve => setTimeout(resolve, 50));
 
       res.json(recipe);
     } catch (error) {

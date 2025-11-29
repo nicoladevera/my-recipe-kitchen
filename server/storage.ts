@@ -171,13 +171,16 @@ export class DatabaseStorage implements IStorage {
     const currentEnv = getEnvironment();
     const [updatedRecipe] = await db
       .update(recipes)
-      .set({ 
+      .set({
         cookingLog: updatedLog,
         rating: averageRating
       })
       .where(and(eq(recipes.id, id), eq(recipes.userId, userId), eq(recipes.environment, currentEnv)))
       .returning();
-    
+
+    // Add small delay for serverless database propagation (Neon eventual consistency)
+    await new Promise(resolve => setTimeout(resolve, 50));
+
     return updatedRecipe || undefined;
   }
 
@@ -201,13 +204,16 @@ export class DatabaseStorage implements IStorage {
     const currentEnv = getEnvironment();
     const [updatedRecipe] = await db
       .update(recipes)
-      .set({ 
+      .set({
         cookingLog: currentLog,
         rating: averageRating
       })
       .where(and(eq(recipes.id, id), eq(recipes.userId, userId), eq(recipes.environment, currentEnv)))
       .returning();
-    
+
+    // Add small delay for serverless database propagation (Neon eventual consistency)
+    await new Promise(resolve => setTimeout(resolve, 50));
+
     return updatedRecipe || undefined;
   }
 }
