@@ -67,6 +67,7 @@ export const insertUserSchema = createInsertSchema(users).omit({
   username: z.string().min(3).max(50).regex(/^[a-zA-Z0-9_-]+$/, "Username can only contain letters, numbers, underscores, and hyphens"),
   email: z.string().email(),
   password: z.string().min(8, "Password must be at least 8 characters"),
+  displayName: z.string().optional(),
 });
 
 export const insertRecipeSchema = createInsertSchema(recipes).omit({
