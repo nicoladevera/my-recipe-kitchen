@@ -158,15 +158,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async addCookingLog(id: string, logEntry: CookingLogEntry, userId: string): Promise<Recipe | undefined> {
-    // Add retry logic for serverless database read-after-write consistency
-    let recipe = await this.getRecipe(id);
-    let retries = 0;
-    while (!recipe && retries < 3) {
-      await new Promise(resolve => setTimeout(resolve, 50));
-      recipe = await this.getRecipe(id);
-      retries++;
-    }
-
+    const recipe = await this.getRecipe(id);
     if (!recipe || recipe.userId !== userId) return undefined;
 
     const currentLog = recipe.cookingLog || [];
@@ -186,26 +178,14 @@ export class DatabaseStorage implements IStorage {
       .where(and(eq(recipes.id, id), eq(recipes.userId, userId), eq(recipes.environment, currentEnv)))
       .returning();
 
-    if (!updatedRecipe) {
-      throw new Error('Failed to update cooking log - no recipe returned');
-    }
-
     // Add small delay for serverless database propagation (Neon eventual consistency)
     await new Promise(resolve => setTimeout(resolve, 100));
 
-    return updatedRecipe;
+    return updatedRecipe || undefined;
   }
 
   async removeCookingLog(id: string, logIndex: number, userId: string): Promise<Recipe | undefined> {
-    // Add retry logic for serverless database read-after-write consistency
-    let recipe = await this.getRecipe(id);
-    let retries = 0;
-    while (!recipe && retries < 3) {
-      await new Promise(resolve => setTimeout(resolve, 50));
-      recipe = await this.getRecipe(id);
-      retries++;
-    }
-
+    const recipe = await this.getRecipe(id);
     if (!recipe || recipe.userId !== userId || !recipe.cookingLog) return undefined;
 
     const currentLog = [...recipe.cookingLog];
@@ -231,14 +211,10 @@ export class DatabaseStorage implements IStorage {
       .where(and(eq(recipes.id, id), eq(recipes.userId, userId), eq(recipes.environment, currentEnv)))
       .returning();
 
-    if (!updatedRecipe) {
-      throw new Error('Failed to remove cooking log - no recipe returned');
-    }
-
     // Add small delay for serverless database propagation (Neon eventual consistency)
     await new Promise(resolve => setTimeout(resolve, 100));
 
-    return updatedRecipe;
+    return updatedRecipe || undefined;
   }
 }
 
