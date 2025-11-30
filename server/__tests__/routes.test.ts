@@ -224,11 +224,11 @@ describe('Recipe CRUD Operations (CRITICAL)', () => {
 
       const recipeId = createResponse.body.id;
 
-      // Wait for recipe to propagate before retrieving it
-      await waitForPropagation();
-
-      const response = await request(app)
-        .get(`/api/recipes/${recipeId}`);
+      // GET with retry logic for eventual consistency
+      const response = await withEventualConsistencyRetry(
+        () => request(app).get(`/api/recipes/${recipeId}`),
+        (response) => response.status === 404
+      );
 
       expect(response.status).toBe(200);
       expect(response.body.name).toBe('Find Me');
@@ -510,18 +510,18 @@ describe('Cooking Log Operations (CRITICAL)', () => {
 
       const recipeId = createResponse.body.id;
 
-      // Wait for recipe to propagate before adding cooking logs
-      await waitForPropagation();
-
-      // Add first log (rating: 4)
-      await request(app)
-        .post(`/api/recipes/${recipeId}/cooking-log`)
-        .set('Cookie', cookies)
-        .send({
-          timestamp: new Date().toISOString(),
-          notes: 'Good',
-          rating: 4
-        });
+      // Add first log with retry for eventual consistency
+      await withEventualConsistencyRetry(
+        () => request(app)
+          .post(`/api/recipes/${recipeId}/cooking-log`)
+          .set('Cookie', cookies)
+          .send({
+            timestamp: new Date().toISOString(),
+            notes: 'Good',
+            rating: 4
+          }),
+        (response) => response.status === 404
+      );
 
       // Add second log (rating: 5)
       const response = await request(app)
@@ -622,18 +622,18 @@ describe('Cooking Log Operations (CRITICAL)', () => {
 
       const recipeId = createResponse.body.id;
 
-      // Wait for recipe to propagate before adding cooking logs
-      await waitForPropagation();
-
-      // Add two log entries
-      await request(app)
-        .post(`/api/recipes/${recipeId}/cooking-log`)
-        .set('Cookie', cookies)
-        .send({
-          timestamp: new Date().toISOString(),
-          notes: 'First',
-          rating: 4
-        });
+      // Add two log entries with retry for eventual consistency
+      await withEventualConsistencyRetry(
+        () => request(app)
+          .post(`/api/recipes/${recipeId}/cooking-log`)
+          .set('Cookie', cookies)
+          .send({
+            timestamp: new Date().toISOString(),
+            notes: 'First',
+            rating: 4
+          }),
+        (response) => response.status === 404
+      );
 
       await request(app)
         .post(`/api/recipes/${recipeId}/cooking-log`)
@@ -720,21 +720,26 @@ describe('Cooking Log Operations (CRITICAL)', () => {
 
       const recipeId = createResponse.body.id;
 
-      // Wait for recipe to propagate before adding cooking log
-      await waitForPropagation();
+      // Add cooking log with retry for eventual consistency
+      await withEventualConsistencyRetry(
+        () => request(app)
+          .post(`/api/recipes/${recipeId}/cooking-log`)
+          .set('Cookie', owner.cookies)
+          .send({
+            timestamp: new Date().toISOString(),
+            notes: 'Test',
+            rating: 4
+          }),
+        (response) => response.status === 404
+      );
 
-      await request(app)
-        .post(`/api/recipes/${recipeId}/cooking-log`)
-        .set('Cookie', owner.cookies)
-        .send({
-          timestamp: new Date().toISOString(),
-          notes: 'Test',
-          rating: 4
-        });
-
-      const response = await request(app)
-        .delete(`/api/recipes/${recipeId}/cooking-log/0`)
-        .set('Cookie', hacker.cookies);
+      // Try to delete with different user - should get 403 when visible
+      const response = await withEventualConsistencyRetry(
+        () => request(app)
+          .delete(`/api/recipes/${recipeId}/cooking-log/0`)
+          .set('Cookie', hacker.cookies),
+        (response) => response.status === 404
+      );
 
       expect(response.status).toBe(403);
     });
