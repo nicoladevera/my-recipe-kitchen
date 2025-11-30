@@ -46,9 +46,34 @@ async function createAuthenticatedUser(app: express.Express, username: string) {
 }
 
 // Helper to add small delay for serverless database consistency
-// Increased to 100ms to handle both regular CI tests and coverage environment (with v8 instrumentation)
-async function waitForPropagation(ms: number = 100) {
-  await new Promise(resolve => setTimeout(resolve, ms));
+// Uses environment-aware delays: 75ms for CI, 150ms for coverage (v8 instrumentation is slower)
+async function waitForPropagation(ms?: number) {
+  const defaultDelay = process.env.COVERAGE === 'true' ? 150 : 75;
+  await new Promise(resolve => setTimeout(resolve, ms ?? defaultDelay));
+}
+
+// Helper to retry operations that may encounter eventual consistency issues
+// Returns immediately on success or non-404 errors, retries only on 404
+async function withEventualConsistencyRetry<T>(
+  operation: () => Promise<T>,
+  shouldRetry: (result: T) => boolean,
+  maxAttempts: number = 5
+): Promise<T> {
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    if (attempt > 0) {
+      // Exponential backoff: 25ms, 50ms, 100ms, 200ms
+      await new Promise(resolve => setTimeout(resolve, 25 * Math.pow(2, attempt - 1)));
+    }
+
+    const result = await operation();
+
+    if (!shouldRetry(result)) {
+      return result;
+    }
+  }
+
+  // Final attempt
+  return await operation();
 }
 
 describe('Recipe CRUD Operations (CRITICAL)', () => {
@@ -1023,21 +1048,26 @@ describe('Security Tests (CRITICAL)', () => {
 
       const recipeId = createResponse.body.id;
 
-      // Wait for recipe to propagate before attempting to access it
-      await waitForPropagation();
-
-      // User2 tries to update it
-      const updateResponse = await request(app)
-        .patch(`/api/recipes/${recipeId}`)
-        .set('Cookie', user2.cookies)
-        .send({ name: 'Hacked' });
+      // User2 tries to update it - retry on 404 (eventual consistency)
+      // but should get 403 (forbidden) when recipe is visible
+      const updateResponse = await withEventualConsistencyRetry(
+        () => request(app)
+          .patch(`/api/recipes/${recipeId}`)
+          .set('Cookie', user2.cookies)
+          .send({ name: 'Hacked' }),
+        (response) => response.status === 404
+      );
 
       expect(updateResponse.status).toBe(403);
 
-      // User2 tries to delete it
-      const deleteResponse = await request(app)
-        .delete(`/api/recipes/${recipeId}`)
-        .set('Cookie', user2.cookies);
+      // User2 tries to delete it - retry on 404 (eventual consistency)
+      // but should get 403 (forbidden) when recipe is visible
+      const deleteResponse = await withEventualConsistencyRetry(
+        () => request(app)
+          .delete(`/api/recipes/${recipeId}`)
+          .set('Cookie', user2.cookies),
+        (response) => response.status === 404
+      );
 
       expect(deleteResponse.status).toBe(403);
     });
