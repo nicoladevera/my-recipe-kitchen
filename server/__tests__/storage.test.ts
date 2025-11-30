@@ -8,9 +8,9 @@ function uniqueUsername(base: string): string {
 }
 
 // Helper to add small delay for serverless database consistency
-// Uses environment-aware delays: 75ms for CI, 150ms for coverage (v8 instrumentation is slower)
+// Uses environment-aware delays: 50ms for CI, 75ms for coverage (v8 instrumentation is slower)
 async function waitForPropagation(ms?: number) {
-  const defaultDelay = process.env.COVERAGE === 'true' ? 150 : 75;
+  const defaultDelay = process.env.COVERAGE === 'true' ? 75 : 50;
   await new Promise(resolve => setTimeout(resolve, ms ?? defaultDelay));
 }
 
@@ -566,6 +566,9 @@ describe('Recipe Storage Operations (HIGH)', () => {
         environment: 'test'
       }, userId);
 
+      // Wait for recipe to propagate
+      await waitForPropagation();
+
       const updated = await storage.addCookingLog(recipe.id, {
         timestamp: new Date().toISOString(),
         notes: 'Delicious!',
@@ -658,6 +661,9 @@ describe('Recipe Storage Operations (HIGH)', () => {
         cookingLog: [],
         environment: 'test'
       }, userId);
+
+      // Wait for recipe to propagate
+      await waitForPropagation();
 
       const updated = await storage.addCookingLog(recipe.id, {
         timestamp: new Date().toISOString(),
