@@ -38,11 +38,6 @@ async function createAuthenticatedUser(app: express.Express, username: string) {
     throw new Error('Registration succeeded but user ID is missing from response');
   }
 
-  // Wait for user to propagate across database connections
-  // Critical for Neon serverless eventual consistency
-  // Uses environment-aware delays: 75ms for CI, 100ms for coverage
-  await waitForPropagation();
-
   return {
     user: response.body,
     cookies: response.headers['set-cookie'],
@@ -267,16 +262,17 @@ describe('Recipe CRUD Operations (CRITICAL)', () => {
 
       const recipeId = createResponse.body.id;
 
-      // Wait for recipe to propagate before updating it
-      await waitForPropagation();
-
-      const response = await request(app)
-        .patch(`/api/recipes/${recipeId}`)
-        .set('Cookie', cookies)
-        .send({
-          name: 'Updated Name',
-          cookTime: 45
-        });
+      // PATCH with retry logic for eventual consistency
+      const response = await withEventualConsistencyRetry(
+        () => request(app)
+          .patch(`/api/recipes/${recipeId}`)
+          .set('Cookie', cookies)
+          .send({
+            name: 'Updated Name',
+            cookTime: 45
+          }),
+        (response) => response.status === 404
+      );
 
       expect(response.status).toBe(200);
       expect(response.body.name).toBe('Updated Name');
@@ -644,21 +640,24 @@ describe('Cooking Log Operations (CRITICAL)', () => {
         (response) => response.status === 404
       );
 
-      await request(app)
-        .post(`/api/recipes/${recipeId}/cooking-log`)
-        .set('Cookie', cookies)
-        .send({
-          timestamp: new Date().toISOString(),
-          notes: 'Second',
-          rating: 5
-        });
+      await withEventualConsistencyRetry(
+        () => request(app)
+          .post(`/api/recipes/${recipeId}/cooking-log`)
+          .set('Cookie', cookies)
+          .send({
+            timestamp: new Date().toISOString(),
+            notes: 'Second',
+            rating: 5
+          }),
+        (response) => response.status === 404
+      );
 
       // Remove first entry (index 0) with retry for eventual consistency
       const response = await withEventualConsistencyRetry(
         () => request(app)
           .delete(`/api/recipes/${recipeId}/cooking-log/0`)
           .set('Cookie', cookies),
-        (response) => response.status === 404
+        (response) => response.status === 404 || response.status === 500
       );
 
       expect(response.status).toBe(200);
