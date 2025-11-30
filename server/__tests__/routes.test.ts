@@ -46,9 +46,9 @@ async function createAuthenticatedUser(app: express.Express, username: string) {
 }
 
 // Helper to add small delay for serverless database consistency
-// Uses environment-aware delays: 75ms for CI, 150ms for coverage (v8 instrumentation is slower)
+// Uses environment-aware delays: 75ms for CI, 100ms for coverage (v8 instrumentation is slower)
 async function waitForPropagation(ms?: number) {
-  const defaultDelay = process.env.COVERAGE === 'true' ? 150 : 75;
+  const defaultDelay = process.env.COVERAGE === 'true' ? 100 : 75;
   await new Promise(resolve => setTimeout(resolve, ms ?? defaultDelay));
 }
 
@@ -365,12 +365,13 @@ describe('Recipe CRUD Operations (CRITICAL)', () => {
 
       const recipeId = createResponse.body.id;
 
-      // Wait for recipe to propagate before deleting it
-      await waitForPropagation();
-
-      const response = await request(app)
-        .delete(`/api/recipes/${recipeId}`)
-        .set('Cookie', cookies);
+      // Delete with retry logic for eventual consistency
+      const response = await withEventualConsistencyRetry(
+        () => request(app)
+          .delete(`/api/recipes/${recipeId}`)
+          .set('Cookie', cookies),
+        (response) => response.status === 404
+      );
 
       expect(response.status).toBe(204);
 
@@ -555,17 +556,19 @@ describe('Cooking Log Operations (CRITICAL)', () => {
 
       const recipeId = createResponse.body.id;
 
-      // Wait for recipe to propagate before attempting to add cooking log
-      await waitForPropagation();
-
-      const response = await request(app)
-        .post(`/api/recipes/${recipeId}/cooking-log`)
-        .set('Cookie', hacker.cookies)
-        .send({
-          timestamp: new Date().toISOString(),
-          notes: 'Hacked',
-          rating: 1
-        });
+      // Try to add cooking log with retry logic for eventual consistency
+      // Should get 403 when recipe is visible (not owned by hacker)
+      const response = await withEventualConsistencyRetry(
+        () => request(app)
+          .post(`/api/recipes/${recipeId}/cooking-log`)
+          .set('Cookie', hacker.cookies)
+          .send({
+            timestamp: new Date().toISOString(),
+            notes: 'Hacked',
+            rating: 1
+          }),
+        (response) => response.status === 404
+      );
 
       expect(response.status).toBe(403);
     });
