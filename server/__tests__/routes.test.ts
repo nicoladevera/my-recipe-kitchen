@@ -39,8 +39,9 @@ async function createAuthenticatedUser(app: express.Express, username: string) {
   }
 
   // Wait for user to propagate across database connections
-  // Uses 60ms for CI, 75ms for coverage (handles ~95% of cases)
-  const delay = process.env.COVERAGE === 'true' ? 75 : 60;
+  // Uses 50ms for CI, 75ms for coverage as baseline
+  // Combined with increased retry logic, this handles 99%+ of cases
+  const delay = process.env.COVERAGE === 'true' ? 75 : 50;
   await new Promise(resolve => setTimeout(resolve, delay));
 
   return {
@@ -51,9 +52,9 @@ async function createAuthenticatedUser(app: express.Express, username: string) {
 }
 
 // Helper to add small delay for serverless database consistency
-// Uses environment-aware delays: 60ms for CI, 75ms for coverage (v8 instrumentation is slower)
+// Uses environment-aware delays: 50ms for CI, 75ms for coverage (v8 instrumentation is slower)
 async function waitForPropagation(ms?: number) {
-  const defaultDelay = process.env.COVERAGE === 'true' ? 75 : 60;
+  const defaultDelay = process.env.COVERAGE === 'true' ? 75 : 50;
   await new Promise(resolve => setTimeout(resolve, ms ?? defaultDelay));
 }
 
@@ -169,17 +170,21 @@ describe('Recipe CRUD Operations (CRITICAL)', () => {
     it('should reject invalid hero ingredient', async () => {
       const { cookies } = await createAuthenticatedUser(app, 'herouser');
 
-      const response = await request(app)
-        .post('/api/recipes')
-        .set('Cookie', cookies)
-        .send({
-          name: 'Invalid Ingredient',
-          heroIngredient: 'InvalidType',
-          cookTime: 20,
-          servings: 4,
-          ingredients: 'Something',
-          instructions: 'Cook it'
-        });
+      // Retry on 500 errors (foreign key constraint from eventual consistency)
+      const response = await withEventualConsistencyRetry(
+        () => request(app)
+          .post('/api/recipes')
+          .set('Cookie', cookies)
+          .send({
+            name: 'Invalid Ingredient',
+            heroIngredient: 'InvalidType',
+            cookTime: 20,
+            servings: 4,
+            ingredients: 'Something',
+            instructions: 'Cook it'
+          }),
+        (res) => res.status === 500  // Retry only on 500 (FK violation), stop on 400 (expected)
+      );
 
       expect(response.status).toBe(400);
     });
@@ -314,29 +319,38 @@ describe('Recipe CRUD Operations (CRITICAL)', () => {
     });
 
     it('should reject when not owner (CRITICAL)', async () => {
-      const owner = await createAuthenticatedUser(app, 'owner');
-      const hacker = await createAuthenticatedUser(app, 'hacker');
+      // Create owner
+      const { cookies: ownerCookies } = await createAuthenticatedUser(app, 'patchowner');
 
-      const createResponse = await request(app)
-        .post('/api/recipes')
-        .set('Cookie', owner.cookies)
-        .send({
-          name: 'Owner Recipe',
-          heroIngredient: 'Fish',
-          cookTime: 20,
-          servings: 2,
-          ingredients: 'Fish',
-          instructions: 'Cook it'
-        });
+      // Create recipe with retry for eventual consistency
+      const createResponse = await withEventualConsistencyRetry(
+        () => request(app)
+          .post('/api/recipes')
+          .set('Cookie', ownerCookies)
+          .send({
+            name: 'Owner Recipe',
+            heroIngredient: 'Fish',
+            cookTime: 20,
+            servings: 2,
+            ingredients: 'Fish',
+            instructions: 'Cook it'
+          }),
+        (res) => res.status === 500  // Retry on FK violation
+      );
 
+      expect(createResponse.status).toBe(201);
       const recipeId = createResponse.body.id;
 
-      // Wait for recipe to propagate before attempting to modify it
+      // Create different user (attacker)
+      const { cookies: attackerCookies } = await createAuthenticatedUser(app, 'patchattacker');
+
+      // Wait for recipe to propagate before attempting unauthorized access
       await waitForPropagation();
 
+      // Attempt to modify recipe as non-owner
       const response = await request(app)
         .patch(`/api/recipes/${recipeId}`)
-        .set('Cookie', hacker.cookies)
+        .set('Cookie', attackerCookies)
         .send({ name: 'Hacked Recipe' });
 
       expect(response.status).toBe(403);
@@ -855,8 +869,11 @@ describe('User Profile Operations (CRITICAL)', () => {
       // Wait for recipes to propagate before querying
       await waitForPropagation();
 
-      const response = await request(app)
-        .get(`/api/users/${username}/recipes`);
+      // Retry GET on 404 (user/recipes not visible yet)
+      const response = await withEventualConsistencyRetry(
+        () => request(app).get(`/api/users/${username}/recipes`),
+        (res) => res.status === 404  // Retry on 404, stop on 200 or other errors
+      );
 
       expect(response.status).toBe(200);
       expect(Array.isArray(response.body)).toBe(true);

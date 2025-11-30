@@ -121,9 +121,9 @@ export class DatabaseStorage implements IStorage {
     const currentEnv = getEnvironment();
 
     // Retry logic for foreign key constraint violations (Neon serverless eventual consistency)
-    // Increased to 7 attempts to handle extreme cases in serverless environment
+    // Increased to 10 attempts to handle extreme cases in serverless environment
     let lastError;
-    for (let attempt = 0; attempt < 7; attempt++) {
+    for (let attempt = 0; attempt < 10; attempt++) {
       try {
         const [recipe] = await db
           .insert(recipes)
@@ -139,11 +139,11 @@ export class DatabaseStorage implements IStorage {
         return recipe;
       } catch (error: any) {
         // Only retry on foreign key constraint violations
-        if (error?.code === '23503' && attempt < 6) {
+        if (error?.code === '23503' && attempt < 9) {
           lastError = error;
-          // Exponential backoff: 25ms, 50ms, 100ms, 200ms, 400ms, 800ms
-          // Total max wait: 1575ms (handles extreme eventual consistency delays)
-          await new Promise(resolve => setTimeout(resolve, 25 * Math.pow(2, attempt)));
+          // Exponential backoff capped at 1000ms: 25ms, 50ms, 100ms, 200ms, 400ms, 800ms, 1000ms, 1000ms, 1000ms
+          // Total max wait: ~4000ms (handles extreme eventual consistency delays without excessive single waits)
+          await new Promise(resolve => setTimeout(resolve, Math.min(25 * Math.pow(2, attempt), 1000)));
           continue;
         }
         throw error;
