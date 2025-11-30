@@ -54,14 +54,16 @@ async function waitForPropagation(ms?: number) {
 
 // Helper to retry operations that may encounter eventual consistency issues
 // Returns immediately on success or non-404 errors, retries only on 404
+// Uses 7 attempts to match server-side retry logic and handle extreme delays
 async function withEventualConsistencyRetry<T>(
   operation: () => Promise<T>,
   shouldRetry: (result: T) => boolean,
-  maxAttempts: number = 5
+  maxAttempts: number = 7
 ): Promise<T> {
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
     if (attempt > 0) {
-      // Exponential backoff: 25ms, 50ms, 100ms, 200ms
+      // Exponential backoff: 25ms, 50ms, 100ms, 200ms, 400ms, 800ms
+      // Total max wait: 1575ms (handles extreme eventual consistency delays)
       await new Promise(resolve => setTimeout(resolve, 25 * Math.pow(2, attempt - 1)));
     }
 
