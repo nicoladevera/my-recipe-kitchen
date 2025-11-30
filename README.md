@@ -342,6 +342,16 @@ npm test
 - `npm run test:ui` - Open interactive Vitest UI
 - `npm run test:coverage` - Generate detailed coverage report
 
+#### Eventual Consistency Testing
+The application runs on **Neon Serverless PostgreSQL**, which exhibits "read-after-write" eventual consistency. This means a record created (`INSERT`) on one connection might not be immediately visible (`SELECT`) on another.
+
+To handle this, the test suite implements:
+- **Adaptive Retry Logic:** `createRecipe` retries up to 10 times on Foreign Key violations.
+- **Environment-Aware Delays:** `waitForPropagation()` adds 150ms (CI) or 250ms (Coverage) delays before critical reads.
+- **Test-Level Retries:** The `withEventualConsistencyRetry` helper handles 404s and 500s during test execution.
+
+For a deep dive into this behavior, see [NEON_CONSISTENCY_TEST_FAILURES.md](docs/troubleshooting/neon_consistency.md).
+
 #### Test Coverage
 The test suite includes comprehensive coverage of:
 - **Authentication flows**: Password hashing, login/logout, session management, security checks
