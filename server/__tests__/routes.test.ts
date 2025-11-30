@@ -426,12 +426,13 @@ describe('Recipe CRUD Operations (CRITICAL)', () => {
 
       const recipeId = createResponse.body.id;
 
-      // Wait for recipe to propagate before trying to access it
-      await waitForPropagation();
-
-      const response = await request(app)
-        .delete(`/api/recipes/${recipeId}`)
-        .set('Cookie', hacker.cookies);
+      // Try to delete with different user - retry on 404, expect 403 when visible
+      const response = await withEventualConsistencyRetry(
+        () => request(app)
+          .delete(`/api/recipes/${recipeId}`)
+          .set('Cookie', hacker.cookies),
+        (response) => response.status === 404
+      );
 
       expect(response.status).toBe(403);
       expect(response.body.error).toBe('Not authorized to modify this recipe');
@@ -590,15 +591,16 @@ describe('Cooking Log Operations (CRITICAL)', () => {
 
       const recipeId = createResponse.body.id;
 
-      // Wait for recipe to propagate before testing validation
-      await waitForPropagation();
-
-      const response = await request(app)
-        .post(`/api/recipes/${recipeId}/cooking-log`)
-        .set('Cookie', cookies)
-        .send({
-          notes: 'Missing timestamp and rating'
-        });
+      // Try to post with missing fields - retry on 404, expect 400 when visible
+      const response = await withEventualConsistencyRetry(
+        () => request(app)
+          .post(`/api/recipes/${recipeId}/cooking-log`)
+          .set('Cookie', cookies)
+          .send({
+            notes: 'Missing timestamp and rating'
+          }),
+        (response) => response.status === 404
+      );
 
       expect(response.status).toBe(400);
     });
