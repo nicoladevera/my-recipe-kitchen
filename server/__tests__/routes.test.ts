@@ -39,8 +39,8 @@ async function createAuthenticatedUser(app: express.Express, username: string) {
   }
 
   // Wait for user to propagate across database connections
-  // Uses 75ms for CI, 100ms for coverage (handles ~95% of cases)
-  const delay = process.env.COVERAGE === 'true' ? 100 : 75;
+  // Uses 75ms for CI, 125ms for coverage (handles ~95% of cases)
+  const delay = process.env.COVERAGE === 'true' ? 125 : 75;
   await new Promise(resolve => setTimeout(resolve, delay));
 
   return {
@@ -51,9 +51,9 @@ async function createAuthenticatedUser(app: express.Express, username: string) {
 }
 
 // Helper to add small delay for serverless database consistency
-// Uses environment-aware delays: 75ms for CI, 100ms for coverage (v8 instrumentation is slower)
+// Uses environment-aware delays: 75ms for CI, 125ms for coverage (v8 instrumentation is slower)
 async function waitForPropagation(ms?: number) {
-  const defaultDelay = process.env.COVERAGE === 'true' ? 100 : 75;
+  const defaultDelay = process.env.COVERAGE === 'true' ? 125 : 75;
   await new Promise(resolve => setTimeout(resolve, ms ?? defaultDelay));
 }
 
