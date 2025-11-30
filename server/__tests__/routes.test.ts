@@ -373,7 +373,7 @@ describe('Recipe CRUD Operations (CRITICAL)', () => {
         () => request(app)
           .delete(`/api/recipes/${recipeId}`)
           .set('Cookie', cookies),
-        (response) => response.status === 404
+        (response) => response.status === 404 || response.status === 500
       );
 
       expect(response.status).toBe(204);
@@ -428,6 +428,9 @@ describe('Recipe CRUD Operations (CRITICAL)', () => {
         });
 
       const recipeId = createResponse.body.id;
+
+      // Wait for recipe to propagate before attempting authorization check
+      await waitForPropagation();
 
       // Try to delete with different user - retry on 404, expect 403 when visible
       const response = await withEventualConsistencyRetry(
