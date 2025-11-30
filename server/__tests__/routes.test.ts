@@ -38,6 +38,10 @@ async function createAuthenticatedUser(app: express.Express, username: string) {
     throw new Error('Registration succeeded but user ID is missing from response');
   }
 
+  // Wait for user to propagate across database connections
+  // Critical for Neon serverless eventual consistency
+  await waitForPropagation();
+
   return {
     user: response.body,
     cookies: response.headers['set-cookie'],
