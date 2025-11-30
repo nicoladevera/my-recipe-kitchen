@@ -7,6 +7,13 @@ function uniqueUsername(base: string): string {
   return `${base}_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
 }
 
+// Helper to add small delay for serverless database consistency
+// Uses environment-aware delays: 75ms for CI, 100ms for coverage (v8 instrumentation is slower)
+async function waitForPropagation(ms?: number) {
+  const defaultDelay = process.env.COVERAGE === 'true' ? 100 : 75;
+  await new Promise(resolve => setTimeout(resolve, ms ?? defaultDelay));
+}
+
 describe('User Storage Operations (HIGH)', () => {
   describe('createUser', () => {
     it('should create user with hashed password', async () => {
@@ -71,6 +78,9 @@ describe('User Storage Operations (HIGH)', () => {
         email: `${username}@example.com`,
         password: hashedPassword
       });
+
+      // Wait for user to propagate across database connections
+      await waitForPropagation();
 
       // In test environment, should find it
       const user = await storage.getUser(created.id);
@@ -609,6 +619,9 @@ describe('Recipe Storage Operations (HIGH)', () => {
         environment: 'test'
       }, userId);
 
+      // Wait for recipe to propagate
+      await waitForPropagation();
+
       await storage.addCookingLog(recipe.id, {
         timestamp: new Date().toISOString(),
         notes: 'First',
@@ -699,6 +712,9 @@ describe('Recipe Storage Operations (HIGH)', () => {
         cookingLog: [],
         environment: 'test'
       }, userId);
+
+      // Wait for recipe to propagate
+      await waitForPropagation();
 
       await storage.addCookingLog(recipe.id, {
         timestamp: new Date().toISOString(),
