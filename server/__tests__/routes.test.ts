@@ -39,8 +39,8 @@ async function createAuthenticatedUser(app: express.Express, username: string) {
   }
 
   // Wait for user to propagate across database connections
-  // Uses 50ms for CI, 75ms for coverage (handles ~95% of cases)
-  const delay = process.env.COVERAGE === 'true' ? 75 : 50;
+  // Uses 75ms for CI, 100ms for coverage (handles ~95% of cases)
+  const delay = process.env.COVERAGE === 'true' ? 100 : 75;
   await new Promise(resolve => setTimeout(resolve, delay));
 
   return {
