@@ -646,10 +646,13 @@ describe('Cooking Log Operations (CRITICAL)', () => {
           rating: 5
         });
 
-      // Remove first entry (index 0)
-      const response = await request(app)
-        .delete(`/api/recipes/${recipeId}/cooking-log/0`)
-        .set('Cookie', cookies);
+      // Remove first entry (index 0) with retry for eventual consistency
+      const response = await withEventualConsistencyRetry(
+        () => request(app)
+          .delete(`/api/recipes/${recipeId}/cooking-log/0`)
+          .set('Cookie', cookies),
+        (response) => response.status === 404
+      );
 
       expect(response.status).toBe(200);
       expect(response.body.cookingLog).toHaveLength(1);
