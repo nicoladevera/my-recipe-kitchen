@@ -39,8 +39,10 @@ async function createAuthenticatedUser(app: express.Express, username: string) {
   }
 
   // Wait for user to propagate across database connections
-  // Critical for Neon serverless eventual consistency
-  await waitForPropagation();
+  // Only needed in coverage environment where V8 instrumentation slows everything down
+  if (process.env.COVERAGE === 'true') {
+    await waitForPropagation();
+  }
 
   return {
     user: response.body,
