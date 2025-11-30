@@ -4,14 +4,18 @@
 
 This document comprehensively analyzes all test failures encountered with both CI tests (`npm test`) and test coverage reports (`npm run test:coverage`) related to **Neon serverless PostgreSQL's eventual consistency issues**. Multiple fix attempts have been made, with varying degrees of success, but **no single solution has consistently resolved both environments simultaneously**.
 
-**Current Status** (as of commit 916f473): Both CI tests and test coverage report are failing after the most recent change.
+**Current Status** (as of commit 7cbe3d2): Hybrid approach implemented, pending database connection to verify.
 
-- **CI Tests**: 2 failures out of 122 tests (98.4% pass rate)
-  - "should update username" - 400 instead of 200
-  - "should prevent modifying other users recipes via ID manipulation" - 500 instead of 403
+- **Implementation**: ✅ Complete
+  - Added 50ms/75ms environment-aware delay in `createAuthenticatedUser()` helper
+  - Maintained 7-attempt exponential backoff retry logic in `createRecipe()`
+  - Maintained test-level retry helpers for operations that may encounter 404s
 
-- **Coverage Tests**: 1 failure out of 122 tests (99.2% pass rate)
-  - "should create recipe with valid data" - 500 instead of 201
+- **Testing Status**: ⏸️ Blocked - Database connection required
+  - Infrastructure is properly configured (env-setup.ts, vitest.config.ts)
+  - No `.env.test` file with Neon DATABASE_URL
+  - Fallback URL points to local PostgreSQL which isn't running
+  - **Action needed**: Create `.env.test` with Neon database URL to run tests
 
 **Root Cause**: Neon serverless PostgreSQL uses connection pooling with eventual consistency, causing read-after-write visibility issues where newly created records (users, recipes) are not immediately visible on subsequent database operations.
 
@@ -2684,6 +2688,79 @@ After extensive testing, the data clearly shows that a **hybrid approach** is ne
 - Coverage: 122/122 tests passing (100%)
 - Stable across multiple runs
 - Fast execution (minimal delays + adaptive retries)
+
+---
+
+## Attempt 11: Hybrid Approach Implementation (Commit 7cbe3d2)
+
+**Date**: 2025-11-30
+**Commit**: 7cbe3d2
+**Strategy**: Implement the hybrid approach as documented above
+
+### Changes Made
+
+1. **Updated `createAuthenticatedUser()` helper** (server/__tests__/routes.test.ts:41-44):
+   ```typescript
+   // Wait for user to propagate across database connections
+   // Uses 50ms for CI, 75ms for coverage (handles ~95% of cases)
+   const delay = process.env.COVERAGE === 'true' ? 75 : 50;
+   await new Promise(resolve => setTimeout(resolve, delay));
+   ```
+
+2. **Verified COVERAGE environment variable** (package.json:15):
+   - Already configured: `COVERAGE=true` in `test:coverage` script
+
+3. **No changes to retry logic** (already in place):
+   - 7-attempt exponential backoff in `storage.createRecipe()`
+   - Test-level retry helpers with exponential backoff
+
+### Implementation Details
+
+**Environment-Aware Delays**:
+- **CI environment** (`COVERAGE !== 'true'`): 50ms delay after user creation
+- **Coverage environment** (`COVERAGE === 'true'`): 75ms delay after user creation
+- These minimal delays prevent ~95% of eventual consistency issues
+- Retry logic handles the remaining ~5% edge cases
+
+**Infrastructure Verification**:
+- ✅ `env-setup.ts` properly sets environment variables before imports
+- ✅ `vitest.config.ts` configured with correct setupFiles order
+- ✅ Fallback DATABASE_URL provided for local development
+- ✅ Test cleanup hooks in place
+
+### Test Results
+
+**Status**: ⏸️ **Cannot verify - database connection required**
+
+**Infrastructure Status**:
+- Environment setup is working correctly (env-setup.ts)
+- Vitest configuration is correct (setupFiles order)
+- No `.env.test` file exists with Neon DATABASE_URL
+- Fallback points to `postgresql://localhost:5432/myrecipekitchen_test`
+- Local PostgreSQL is not running
+
+**Error**:
+```
+NeonDbError: Error connecting to database: fetch failed
+```
+
+**Next Steps to Verify**:
+1. Create `.env.test` file with Neon database URL:
+   ```bash
+   DATABASE_URL=postgresql://[neon-connection-string]
+   ```
+2. Run `npm test` to verify CI tests pass (expected: 122/122)
+3. Run `npm run test:coverage` to verify coverage tests pass (expected: 122/122)
+4. Run multiple times to ensure stability
+
+### Analysis
+
+The hybrid approach implementation is **complete and ready for testing**. The code changes are minimal and focused:
+- Small propagation delay (50-75ms) prevents most issues
+- Existing retry logic handles edge cases
+- Environment-aware configuration optimizes for each test environment
+
+The implementation follows the documented recommendation exactly. Once database connectivity is restored, we can verify that this approach achieves the target of 122/122 tests passing in both environments.
 
 ---
 
