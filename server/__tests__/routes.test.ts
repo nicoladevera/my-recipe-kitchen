@@ -38,6 +38,11 @@ async function createAuthenticatedUser(app: express.Express, username: string) {
     throw new Error('Registration succeeded but user ID is missing from response');
   }
 
+  // Wait for user to propagate across database connections
+  // Uses 50ms for CI, 75ms for coverage (handles ~95% of cases)
+  const delay = process.env.COVERAGE === 'true' ? 75 : 50;
+  await new Promise(resolve => setTimeout(resolve, delay));
+
   return {
     user: response.body,
     cookies: response.headers['set-cookie'],
