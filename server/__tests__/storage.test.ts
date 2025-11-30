@@ -8,9 +8,9 @@ function uniqueUsername(base: string): string {
 }
 
 // Helper to add small delay for serverless database consistency
-// Uses environment-aware delays: 60ms for CI, 75ms for coverage (v8 instrumentation is slower)
+// Uses environment-aware delays: 150ms for CI, 250ms for coverage (v8 instrumentation is slower)
 async function waitForPropagation(ms?: number) {
-  const defaultDelay = process.env.COVERAGE === 'true' ? 75 : 60;
+  const defaultDelay = process.env.COVERAGE === 'true' ? 250 : 150;
   await new Promise(resolve => setTimeout(resolve, ms ?? defaultDelay));
 }
 
@@ -57,6 +57,9 @@ describe('User Storage Operations (HIGH)', () => {
         email: `${username}@example.com`,
         password: hashedPassword
       });
+
+      // Wait for user to propagate
+      await waitForPropagation();
 
       const user = await storage.getUser(created.id);
 
@@ -137,6 +140,9 @@ describe('User Storage Operations (HIGH)', () => {
         email: email,
         password: hashedPassword
       });
+
+      // Wait for user to propagate
+      await waitForPropagation();
 
       const user = await storage.getUserByEmail(email);
 
@@ -223,6 +229,9 @@ describe('User Storage Operations (HIGH)', () => {
 
       expect(success).toBe(true);
 
+      // Wait for password update to propagate
+      await waitForPropagation();
+
       // Verify old password no longer works
       const updatedUser = await storage.getUser(user.id);
       expect(updatedUser!.password).not.toBe(hashedPassword);
@@ -270,6 +279,8 @@ describe('Recipe Storage Operations (HIGH)', () => {
       password: hashedPassword
     });
     userId = user.id;
+    // Wait for user to propagate to ensure foreign key constraints pass
+    await waitForPropagation();
   });
 
   describe('createRecipe', () => {
@@ -352,6 +363,9 @@ describe('Recipe Storage Operations (HIGH)', () => {
 
   describe('getRecipes', () => {
     it('should return user recipes when userId provided', async () => {
+      // Wait for user to propagate
+      await waitForPropagation();
+
       await storage.createRecipe({
         name: 'User Recipe 1',
         heroIngredient: 'Chicken',
@@ -381,6 +395,9 @@ describe('Recipe Storage Operations (HIGH)', () => {
     });
 
     it('should sort by cooking log activity', async () => {
+      // Wait for user to propagate
+      await waitForPropagation();
+
       const recipe1 = await storage.createRecipe({
         name: 'Old Recipe',
         heroIngredient: 'Chicken',
@@ -403,6 +420,9 @@ describe('Recipe Storage Operations (HIGH)', () => {
         environment: 'test'
       }, userId);
 
+      // Wait for recipes to propagate before adding log
+      await waitForPropagation();
+
       // Add cooking log to recipe1 to make it more recent
       await storage.addCookingLog(recipe1.id, {
         timestamp: new Date().toISOString(),
@@ -410,10 +430,24 @@ describe('Recipe Storage Operations (HIGH)', () => {
         rating: 5
       }, userId);
 
-      const recipes = await storage.getRecipes(userId);
+      // Wait for cooking log update to propagate
+      await waitForPropagation();
+
+      let recipes = await storage.getRecipes(userId);
+      
+      // Manual retry if recipes are not visible yet
+      if (recipes.length === 0) {
+        await waitForPropagation();
+        recipes = await storage.getRecipes(userId);
+      }
+      
+      if (recipes.length === 0) {
+        await waitForPropagation(500); // Extra long wait
+        recipes = await storage.getRecipes(userId);
+      }
 
       // Recipe with cooking log should come first
-      expect(recipes[0].name).toBe('Old Recipe');
+      expect(recipes[0]?.name).toBe('Old Recipe');
     });
 
     it('should return empty array when user has no recipes', async () => {
@@ -464,6 +498,9 @@ describe('Recipe Storage Operations (HIGH)', () => {
         password: hashedPassword
       });
 
+      // Extra wait to ensure users are propagated
+      await waitForPropagation();
+
       const recipe = await storage.createRecipe({
         name: 'Owner Recipe',
         heroIngredient: 'Fish',
@@ -495,6 +532,9 @@ describe('Recipe Storage Operations (HIGH)', () => {
 
   describe('deleteRecipe', () => {
     it('should delete recipe when owner', async () => {
+      // Extra wait to ensure user is propagated before creating recipe
+      await waitForPropagation();
+      
       const recipe = await storage.createRecipe({
         name: 'Delete Me',
         heroIngredient: 'Vegetable',
@@ -700,6 +740,9 @@ describe('Recipe Storage Operations (HIGH)', () => {
         rating: 5
       }, userId);
 
+      // Wait for cooking logs to propagate
+      await waitForPropagation();
+
       const updated = await storage.removeCookingLog(recipe.id, 0, userId);
 
       expect(updated).toBeDefined();
@@ -758,6 +801,9 @@ describe('Recipe Storage Operations (HIGH)', () => {
         notes: 'Only one',
         rating: 4
       }, userId);
+
+      // Wait for cooking log to propagate
+      await waitForPropagation();
 
       const updated = await storage.removeCookingLog(recipe.id, 0, userId);
 
