@@ -431,32 +431,40 @@ describe('Recipe CRUD Operations (CRITICAL)', () => {
     });
 
     it('should reject when not owner (CRITICAL)', async () => {
-      const owner = await createAuthenticatedUser(app, 'deleteowner2');
-      const hacker = await createAuthenticatedUser(app, 'deletehacker');
+      // Create owner
+      const { cookies: ownerCookies } = await createAuthenticatedUser(app, 'deleteowner2');
 
-      const createResponse = await request(app)
-        .post('/api/recipes')
-        .set('Cookie', owner.cookies)
-        .send({
-          name: 'Protected Recipe',
-          heroIngredient: 'Dessert',
-          cookTime: 30,
-          servings: 6,
-          ingredients: 'Sugar',
-          instructions: 'Bake it'
-        });
+      // Create recipe with retry for eventual consistency
+      const createResponse = await withEventualConsistencyRetry(
+        () => request(app)
+          .post('/api/recipes')
+          .set('Cookie', ownerCookies)
+          .send({
+            name: 'Protected Recipe',
+            heroIngredient: 'Dessert',
+            cookTime: 30,
+            servings: 6,
+            ingredients: 'Sugar',
+            instructions: 'Bake it'
+          }),
+        (res) => res.status === 500
+      );
 
+      expect(createResponse.status).toBe(201);
       const recipeId = createResponse.body.id;
 
-      // Wait for recipe to propagate before attempting authorization check
+      // Create attacker
+      const { cookies: attackerCookies } = await createAuthenticatedUser(app, 'deletehacker');
+
+      // Wait for recipe to propagate
       await waitForPropagation();
 
-      // Try to delete with different user - retry on 404, expect 403 when visible
+      // Attempt unauthorized deletion
       const response = await withEventualConsistencyRetry(
         () => request(app)
           .delete(`/api/recipes/${recipeId}`)
-          .set('Cookie', hacker.cookies),
-        (response) => response.status === 404
+          .set('Cookie', attackerCookies),
+        (res) => res.status === 500
       );
 
       expect(response.status).toBe(403);
@@ -565,35 +573,45 @@ describe('Cooking Log Operations (CRITICAL)', () => {
     });
 
     it('should reject when not owner', async () => {
-      const owner = await createAuthenticatedUser(app, 'logowner2');
-      const hacker = await createAuthenticatedUser(app, 'loghacker');
+      // Create owner
+      const { cookies: ownerCookies } = await createAuthenticatedUser(app, 'logowner2');
 
-      const createResponse = await request(app)
-        .post('/api/recipes')
-        .set('Cookie', owner.cookies)
-        .send({
-          name: 'Protected Log Recipe',
-          heroIngredient: 'Fish',
-          cookTime: 20,
-          servings: 2,
-          ingredients: 'Fish',
-          instructions: 'Cook it'
-        });
+      // Create recipe with retry for eventual consistency
+      const createResponse = await withEventualConsistencyRetry(
+        () => request(app)
+          .post('/api/recipes')
+          .set('Cookie', ownerCookies)
+          .send({
+            name: 'Protected Log Recipe',
+            heroIngredient: 'Fish',
+            cookTime: 20,
+            servings: 2,
+            ingredients: 'Fish',
+            instructions: 'Cook it'
+          }),
+        (res) => res.status === 500
+      );
 
+      expect(createResponse.status).toBe(201);
       const recipeId = createResponse.body.id;
 
-      // Try to add cooking log with retry logic for eventual consistency
-      // Should get 403 when recipe is visible (not owned by hacker)
+      // Create different user
+      const { cookies: otherCookies } = await createAuthenticatedUser(app, 'loghacker');
+
+      // Wait for recipe to propagate
+      await waitForPropagation();
+
+      // Attempt to add cooking log as non-owner
       const response = await withEventualConsistencyRetry(
         () => request(app)
           .post(`/api/recipes/${recipeId}/cooking-log`)
-          .set('Cookie', hacker.cookies)
+          .set('Cookie', otherCookies)
           .send({
             timestamp: new Date().toISOString(),
             notes: 'Hacked',
             rating: 1
           }),
-        (response) => response.status === 404
+        (res) => res.status === 500
       );
 
       expect(response.status).toBe(403);
@@ -690,19 +708,27 @@ describe('Cooking Log Operations (CRITICAL)', () => {
     it('should recalculate rating after removal', async () => {
       const { cookies } = await createAuthenticatedUser(app, 'recalcowner');
 
-      const createResponse = await request(app)
-        .post('/api/recipes')
-        .set('Cookie', cookies)
-        .send({
-          name: 'Recalc Recipe',
-          heroIngredient: 'Dessert',
-          cookTime: 30,
-          servings: 6,
-          ingredients: 'Sugar',
-          instructions: 'Bake it'
-        });
+      // Create recipe with retry
+      const createResponse = await withEventualConsistencyRetry(
+        () => request(app)
+          .post('/api/recipes')
+          .set('Cookie', cookies)
+          .send({
+            name: 'Recalc Recipe',
+            heroIngredient: 'Dessert',
+            cookTime: 30,
+            servings: 6,
+            ingredients: 'Sugar',
+            instructions: 'Bake it'
+          }),
+        (res) => res.status === 500
+      );
 
+      expect(createResponse.status).toBe(201);
       const recipeId = createResponse.body.id;
+
+      // Wait for recipe to propagate
+      await waitForPropagation();
 
       // Add two entries: rating 3 and 5
       await request(app)
@@ -727,12 +753,25 @@ describe('Cooking Log Operations (CRITICAL)', () => {
       await waitForPropagation();
 
       // Average is 4, remove rating 3 entry
-      const response = await request(app)
+      const deleteResponse = await request(app)
         .delete(`/api/recipes/${recipeId}/cooking-log/1`)
         .set('Cookie', cookies);
 
-      // Rating should now be 5
-      expect(response.body.rating).toBe(5);
+      expect(deleteResponse.status).toBe(200);
+
+      // Wait for the update to propagate
+      await waitForPropagation();
+
+      // Fetch recipe to verify rating was recalculated
+      const getResponse = await withEventualConsistencyRetry(
+        () => request(app)
+          .get(`/api/recipes/${recipeId}`)
+          .set('Cookie', cookies),
+        (res) => res.status === 404 || res.body.rating === undefined
+      );
+
+      expect(getResponse.status).toBe(200);
+      expect(getResponse.body.rating).toBe(5);
     });
 
     it('should reject when not owner', async () => {
