@@ -22,7 +22,7 @@ export default defineConfig({
         'server/__tests__/**',
       ],
     },
-    testTimeout: 10000,
+    testTimeout: 30000,
   },
   resolve: {
     alias: {
