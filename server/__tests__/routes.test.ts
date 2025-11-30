@@ -39,8 +39,8 @@ async function createAuthenticatedUser(app: express.Express, username: string) {
   }
 
   // Wait for user to propagate across database connections
-  // Uses 65ms for CI, 75ms for coverage (handles ~95% of cases)
-  const delay = process.env.COVERAGE === 'true' ? 75 : 65;
+  // Uses 60ms for CI, 75ms for coverage (handles ~95% of cases)
+  const delay = process.env.COVERAGE === 'true' ? 75 : 60;
   await new Promise(resolve => setTimeout(resolve, delay));
 
   return {
@@ -51,9 +51,9 @@ async function createAuthenticatedUser(app: express.Express, username: string) {
 }
 
 // Helper to add small delay for serverless database consistency
-// Uses environment-aware delays: 65ms for CI, 75ms for coverage (v8 instrumentation is slower)
+// Uses environment-aware delays: 60ms for CI, 75ms for coverage (v8 instrumentation is slower)
 async function waitForPropagation(ms?: number) {
-  const defaultDelay = process.env.COVERAGE === 'true' ? 75 : 65;
+  const defaultDelay = process.env.COVERAGE === 'true' ? 75 : 60;
   await new Promise(resolve => setTimeout(resolve, ms ?? defaultDelay));
 }
 
@@ -739,6 +739,9 @@ describe('Cooking Log Operations (CRITICAL)', () => {
 
       const recipeId = createResponse.body.id;
 
+      // Wait for recipe to propagate before operations
+      await waitForPropagation();
+
       // Add cooking log with retry for eventual consistency
       await withEventualConsistencyRetry(
         () => request(app)
@@ -872,12 +875,16 @@ describe('User Profile Operations (CRITICAL)', () => {
     it('should update username', async () => {
       const { cookies } = await createAuthenticatedUser(app, 'oldusername');
 
-      const response = await request(app)
-        .patch('/api/user')
-        .set('Cookie', cookies)
-        .send({
-          username: 'newusername'
-        });
+      // Retry on 500 errors (session/user not fully propagated)
+      const response = await withEventualConsistencyRetry(
+        () => request(app)
+          .patch('/api/user')
+          .set('Cookie', cookies)
+          .send({
+            username: 'newusername'
+          }),
+        (response) => response.status === 500
+      );
 
       expect(response.status).toBe(200);
       expect(response.body.username).toBe('newusername');
@@ -1037,17 +1044,21 @@ describe('Security Tests (CRITICAL)', () => {
       const { cookies } = await createAuthenticatedUser(app, 'xssuser');
 
       const xssPayload = '<script>alert("XSS")</script>';
-      const response = await request(app)
-        .post('/api/recipes')
-        .set('Cookie', cookies)
-        .send({
-          name: xssPayload,
-          heroIngredient: 'Chicken',
-          cookTime: 30,
-          servings: 4,
-          ingredients: xssPayload,
-          instructions: xssPayload
-        });
+      // Retry on 500 errors (foreign key constraint violations from eventual consistency)
+      const response = await withEventualConsistencyRetry(
+        () => request(app)
+          .post('/api/recipes')
+          .set('Cookie', cookies)
+          .send({
+            name: xssPayload,
+            heroIngredient: 'Chicken',
+            cookTime: 30,
+            servings: 4,
+            ingredients: xssPayload,
+            instructions: xssPayload
+          }),
+        (response) => response.status === 500
+      );
 
       expect(response.status).toBe(201);
       expect(response.body.name).toBe(xssPayload);

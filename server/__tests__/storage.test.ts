@@ -8,9 +8,9 @@ function uniqueUsername(base: string): string {
 }
 
 // Helper to add small delay for serverless database consistency
-// Uses environment-aware delays: 65ms for CI, 75ms for coverage (v8 instrumentation is slower)
+// Uses environment-aware delays: 60ms for CI, 75ms for coverage (v8 instrumentation is slower)
 async function waitForPropagation(ms?: number) {
-  const defaultDelay = process.env.COVERAGE === 'true' ? 75 : 65;
+  const defaultDelay = process.env.COVERAGE === 'true' ? 75 : 60;
   await new Promise(resolve => setTimeout(resolve, ms ?? defaultDelay));
 }
 
