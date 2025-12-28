@@ -172,11 +172,14 @@ my-recipe-kitchen/
 │   └── troubleshooting/
 │       ├── neon_consistency.md # Eventual consistency analysis
 │       └── archive/        # Legacy documentation
+├── scripts/                 # Build and test scripts
+│   └── test.sh             # Smart test runner (auto-detects database)
 ├── attached_assets/         # Screenshots and images
 ├── uploads/                 # Local file upload fallback directory
 ├── dist/                    # Production build output
 │   └── public/             # Built frontend assets
 ├── migrations/              # Database migration files (Drizzle)
+├── docker-compose.yml      # Local PostgreSQL for testing
 ├── .env.test.example       # Example test environment configuration
 ├── .replit                 # Replit configuration
 ├── CHANGELOG.md            # Version history and release notes
@@ -222,11 +225,16 @@ Path aliases are configured in:
 ### Testing
 
 - **`vitest.config.ts`** - Vitest test runner configuration
-  - Sequential test execution (prevents race conditions)
-  - 30-second test timeout (up from default 5s)
+  - Sequential test execution (`fileParallelism: false`, `concurrent: false`)
+  - 10-second test timeout (local PostgreSQL is fast)
   - V8 coverage provider
   - HTML coverage reports in `coverage/` directory
   - Setup files for environment initialization
+
+- **`docker-compose.yml`** - Local PostgreSQL for testing
+  - PostgreSQL 15 Alpine image
+  - Pre-configured for test database
+  - Used by `npm run db:start`
 
 ### Database
 
@@ -341,15 +349,24 @@ For detailed setup instructions, see [docs/setup/database.md](docs/setup/databas
 
 ## Available Scripts
 
+### Development
 - `npm run dev` - Start development server with hot reload
 - `npm run build` - Build for production
 - `npm start` - Start production server
 - `npm run check` - Run TypeScript type checking
-- `npm run db:push` - Push database schema changes
-- `npm test` - Run tests once
-- `npm run test:watch` - Run tests in watch mode (auto-rerun on changes)
+
+### Database
+- `npm run db:push` - Push schema to Neon (production)
+- `npm run db:start` - Start local PostgreSQL (Docker)
+- `npm run db:stop` - Stop local PostgreSQL
+- `npm run db:push:local` - Push schema to local PostgreSQL
+
+### Testing
+- `npm test` - Run tests (auto-detects local PostgreSQL or Neon)
+- `npm run test:local` - Run tests against local PostgreSQL explicitly
+- `npm run test:watch` - Run tests in watch mode
 - `npm run test:ui` - Open interactive Vitest UI
-- `npm run test:coverage` - Generate test coverage report (sets COVERAGE=true, uses V8 provider, generates HTML report)
+- `npm run test:coverage` - Generate test coverage report
 
 ## Database Schema
 
@@ -587,52 +604,37 @@ The application includes special handling for mobile devices:
 
 ## Testing
 
-The application includes comprehensive test coverage with automated CI/CD.
+The application includes comprehensive test coverage with automated CI/CD. **All 122 tests pass** with no flakiness.
 
 ### Quick Start
-Run the test suite:
+
+**With Docker (Recommended):**
 ```bash
+npm run db:start        # Start local PostgreSQL
+npm run db:push:local   # Push schema
+npm test                # Run tests (~20-40 seconds)
+```
+
+**Without Docker:**
+```bash
+# Tests will use Neon (if configured in .env.test)
+# May experience some eventual consistency delays
 npm test
 ```
 
-### Local Test Setup
+### How Testing Works
 
-Tests use **environment-based data isolation** within your existing database. No separate test database required!
+Tests run against **local PostgreSQL** (not Neon) for speed and consistency:
 
-**Simple Setup:**
-```bash
-# Set your database URL
-export DATABASE_URL=postgresql://user:password@host/database
+- **CI (GitHub Actions)**: Uses PostgreSQL service container
+- **Local (with Docker)**: Uses Docker PostgreSQL container
+- **Local (without Docker)**: Falls back to Neon with longer timeouts
 
-# Run tests
-npm test
-```
-
-**How it works:**
-- Tests automatically set `NODE_ENV=test`
-- All test data is tagged with `environment='test'`
-- Data is automatically cleaned up after each test
-- Your development/production data remains untouched
-
-**Optional: Custom Test Database**
-
-If you prefer a separate test database:
-```bash
-# Copy example configuration
-cp .env.test.example .env.test
-
-# Edit .env.test with test database URL
-DATABASE_URL=postgresql://user:password@host/test_database
-
-# Create test database
-createdb myrecipekitchen_test
-
-# Push schema to test database
-DATABASE_URL=postgresql://user:password@host/test_database npm run db:push
-
-# Run tests
-npm test
-```
+**Key benefits:**
+- No eventual consistency issues
+- Fast execution (~20-40 seconds vs 2+ minutes)
+- All tests enabled (no skips)
+- Deterministic results
 
 ### Test Commands
 
@@ -648,35 +650,25 @@ npm test
 ### Test Configuration
 
 **Key Settings (vitest.config.ts):**
-- Sequential execution (prevents race conditions)
-- 30-second timeout (up from default 5s)
+- `fileParallelism: false` - Test files run sequentially
+- `sequence.concurrent: false` - Tests within files run sequentially
+- 10-second timeout (local PostgreSQL is fast)
 - Setup files: `env-setup.ts` (runs first), `setup.ts`
 - Coverage exclusions: node_modules, dist, test files
 
-### Eventual Consistency Testing
+**Why sequential execution?**
+Both settings are required to prevent race conditions. Without `fileParallelism: false`, different test files run in parallel and their database cleanup operations can interfere with each other.
 
-The application runs on **Neon Serverless PostgreSQL**, which exhibits "read-after-write" eventual consistency. This means a record created (`INSERT`) on one connection might not be immediately visible (`SELECT`) on another.
+### Database Configuration
 
-**Implemented Solutions:**
+Tests use a **dual-driver setup** in `server/db.ts`:
 
-1. **Adaptive Retry Logic** - `createRecipe` in `storage.ts` retries up to 15 times on Foreign Key violations with exponential backoff
-2. **Environment-Aware Delays** - `waitForPropagation()` adds delays before critical reads:
-   - CI Environment: 150ms
-   - Coverage Environment: 250ms (accounts for V8 instrumentation)
-3. **Test-Level Retries** - `withEventualConsistencyRetry` wrapper retries HTTP requests up to 10 times on 404/500 errors
-4. **Strategic Waits** - Manual delays at synchronization points in storage tests
+- **Local PostgreSQL** (`USE_LOCAL_DB=true`): Uses standard `pg` driver
+- **Neon Serverless** (production): Uses `@neondatabase/serverless` driver
 
-**Skipped Tests (~8% of suite):**
+The test runner (`scripts/test.sh`) automatically detects which database to use.
 
-Due to extreme Neon latency (>10s), approximately 10 tests are intentionally skipped:
-- `PATCH /api/recipes/:id` operations
-- `DELETE /api/recipes/:id` operations
-- Cooking log modification tests
-- Multi-step ownership tests
-
-These tests consistently fail despite aggressive retry logic and represent edge cases with rapid `create → modify/delete` sequences.
-
-**For comprehensive analysis**, see [docs/troubleshooting/neon_consistency.md](docs/troubleshooting/neon_consistency.md)
+**For historical context on Neon eventual consistency issues**, see [docs/troubleshooting/neon_consistency.md](docs/troubleshooting/neon_consistency.md)
 
 ### Test Coverage
 
@@ -763,8 +755,10 @@ The project includes two GitHub Actions workflows:
 Runs on every PR and push to `main`:
 
 **Job 1: Run Tests**
+- Uses PostgreSQL service container (not Neon)
 - TypeScript type checking (`npm run check`)
-- 140+ unit and integration tests (`npm test`)
+- Push schema to local PostgreSQL (`npm run db:push:local`)
+- 122 unit and integration tests (`npm test`)
 - Application build verification (`npm run build`)
 
 **Job 2: Code Quality Checks**
@@ -788,9 +782,10 @@ Runs on every PR and push to `main`:
 
 Configure these in: **Repository Settings → Secrets and variables → Actions**
 
-- **`DATABASE_URL`** - Test database connection for CI (required)
-- **`SESSION_SECRET`** - Session secret for tests (required)
+- **`DATABASE_URL`** - Production database connection (for build step only)
 - **`CODECOV_TOKEN`** - For coverage reporting (optional)
+
+**Note:** Tests use a PostgreSQL service container, so no external database URL is needed for testing.
 
 ### Pull Request Protection
 
@@ -851,15 +846,29 @@ DELETE FROM recipes WHERE environment = 'test';
 DELETE FROM users WHERE environment = 'test';
 ```
 
-### Neon Eventual Consistency Test Failures
+### Test Failures with Race Conditions
 
 **Problem:** Tests fail with 404 errors or Foreign Key violations
 
 **Solution:**
-- This is expected behavior with Neon serverless PostgreSQL
-- The test suite includes retry logic and delays
-- Some tests (~8%) are intentionally skipped due to extreme latency
-- See comprehensive guide: [docs/troubleshooting/neon_consistency.md](docs/troubleshooting/neon_consistency.md)
+Tests should run against local PostgreSQL, not Neon. If you see these errors:
+
+1. **Ensure Docker is running:**
+   ```bash
+   npm run db:start
+   npm run db:push:local
+   npm test
+   ```
+
+2. **Check vitest.config.ts has both parallelism settings:**
+   ```typescript
+   fileParallelism: false,
+   sequence: { concurrent: false }
+   ```
+
+3. **If using Neon (fallback):** Some flakiness is expected due to eventual consistency.
+
+See: [docs/troubleshooting/neon_consistency.md](docs/troubleshooting/neon_consistency.md)
 
 ### CI/CD Pipeline Failures
 

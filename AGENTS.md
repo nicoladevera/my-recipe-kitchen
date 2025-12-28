@@ -328,10 +328,17 @@ server/__tests__/
 
 ```typescript
 // vitest.config.ts
+fileParallelism: false,  // Prevents test FILES from running in parallel
 sequence: {
-  concurrent: false,  // Prevents parallel test execution
+  concurrent: false,     // Prevents tests WITHIN files from running in parallel
 }
 ```
+
+**Why both settings?**
+- `fileParallelism: false` - Ensures test files run one at a time (e.g., `auth.test.ts` finishes before `routes.test.ts` starts)
+- `sequence.concurrent: false` - Ensures tests within each file run sequentially
+
+Without both settings, you may see race conditions where one file's database cleanup interferes with another file's tests.
 
 **Setup Files** (run in order):
 1. `env-setup.ts` - Configures environment variables before any imports
