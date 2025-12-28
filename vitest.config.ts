@@ -6,6 +6,7 @@ export default defineConfig({
     globals: true,
     environment: 'node',
     // Run tests sequentially to prevent race conditions with database cleanup
+    fileParallelism: false, // Prevent test files from running in parallel
     sequence: {
       concurrent: false,
     },
