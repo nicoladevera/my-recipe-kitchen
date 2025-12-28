@@ -22,7 +22,7 @@ export default defineConfig({
         'server/__tests__/**',
       ],
     },
-    testTimeout: 30000,
+    testTimeout: 10000, // Reduced from 30s - local PostgreSQL is fast and consistent
   },
   resolve: {
     alias: {

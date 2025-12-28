@@ -322,7 +322,7 @@ describe('POST /api/logout', () => {
   });
 
   // SKIPPED: Flaky due to Neon serverless eventual consistency
-  it.skip('should logout authenticated user', async () => {
+  it('should logout authenticated user', async () => {
     const username = uniqueUsername('logoutuser');
     // Register and login
     const loginResponse = await request(app)

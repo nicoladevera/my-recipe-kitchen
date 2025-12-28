@@ -265,7 +265,7 @@ describe('Recipe CRUD Operations (CRITICAL)', () => {
   describe('PATCH /api/recipes/:id', () => {
     // Skipped due to extreme Neon serverless eventual consistency lag (>10s)
     // See docs/troubleshooting/neon_consistency.md
-    it.skip('should update recipe when owner', async () => {
+    it('should update recipe when owner', async () => {
       const { cookies } = await createAuthenticatedUser(app, 'updateowner');
 
       // Create recipe with retry for eventual consistency
@@ -333,7 +333,7 @@ describe('Recipe CRUD Operations (CRITICAL)', () => {
     });
 
     // SKIPPED: Flaky due to Neon serverless eventual consistency (multi-user timing)
-    it.skip('should reject when not owner (CRITICAL)', async () => {
+    it('should reject when not owner (CRITICAL)', async () => {
       // Create owner
       const { cookies: ownerCookies } = await createAuthenticatedUser(app, 'patchowner');
 
@@ -451,7 +451,7 @@ describe('Recipe CRUD Operations (CRITICAL)', () => {
 
     // Skipped due to extreme Neon serverless eventual consistency lag
     // See docs/troubleshooting/neon_consistency.md
-    it.skip('should reject when not owner (CRITICAL)', async () => {
+    it('should reject when not owner (CRITICAL)', async () => {
       // Create owner
       const { cookies: ownerCookies } = await createAuthenticatedUser(app, 'deleteowner2');
 
@@ -495,7 +495,7 @@ describe('Recipe CRUD Operations (CRITICAL)', () => {
 
     // Skipped due to extreme Neon serverless eventual consistency lag
     // See docs/troubleshooting/neon_consistency.md
-    it.skip('should return 404 for non-existent recipe', async () => {
+    it('should return 404 for non-existent recipe', async () => {
       const { cookies } = await createAuthenticatedUser(app, 'delete404');
 
       // Retry on 500 errors
@@ -521,7 +521,7 @@ describe('Cooking Log Operations (CRITICAL)', () => {
   describe('POST /api/recipes/:id/cooking-log', () => {
     // Skipped due to extreme Neon serverless eventual consistency lag
     // See docs/troubleshooting/neon_consistency.md
-    it.skip('should add cooking log entry', async () => {
+    it('should add cooking log entry', async () => {
       const { cookies } = await createAuthenticatedUser(app, 'logowner');
 
       const createResponse = await request(app)
@@ -562,7 +562,7 @@ describe('Cooking Log Operations (CRITICAL)', () => {
 
     // Skipped due to extreme Neon serverless eventual consistency lag
     // See docs/troubleshooting/neon_consistency.md
-    it.skip('should calculate average rating from multiple entries', async () => {
+    it('should calculate average rating from multiple entries', async () => {
       const { cookies } = await createAuthenticatedUser(app, 'avgowner');
 
       const createResponse = await request(app)
@@ -612,7 +612,7 @@ describe('Cooking Log Operations (CRITICAL)', () => {
 
     // Skipped due to extreme Neon serverless eventual consistency lag
     // See docs/troubleshooting/neon_consistency.md
-    it.skip('should reject when not owner', async () => {
+    it('should reject when not owner', async () => {
       // Create owner
       const { cookies: ownerCookies } = await createAuthenticatedUser(app, 'logowner2');
 
@@ -660,7 +660,7 @@ describe('Cooking Log Operations (CRITICAL)', () => {
 
     // Skipped due to extreme Neon serverless eventual consistency lag
     // See docs/troubleshooting/neon_consistency.md
-    it.skip('should require all fields', async () => {
+    it('should require all fields', async () => {
       const { cookies } = await createAuthenticatedUser(app, 'reqowner');
 
       const createResponse = await request(app)
@@ -695,7 +695,7 @@ describe('Cooking Log Operations (CRITICAL)', () => {
   describe('DELETE /api/recipes/:id/cooking-log/:index', () => {
     // Skipped due to extreme Neon serverless eventual consistency lag
     // See docs/troubleshooting/neon_consistency.md
-    it.skip('should remove cooking log entry', async () => {
+    it('should remove cooking log entry', async () => {
       const { cookies } = await createAuthenticatedUser(app, 'removeowner');
 
       const createResponse = await request(app)
@@ -752,7 +752,7 @@ describe('Cooking Log Operations (CRITICAL)', () => {
 
     // Skipped due to extreme Neon serverless eventual consistency lag
     // See docs/troubleshooting/neon_consistency.md
-    it.skip('should recalculate rating after removal', async () => {
+    it('should recalculate rating after removal', async () => {
       const { cookies } = await createAuthenticatedUser(app, 'recalcowner');
 
       // Create recipe with retry
@@ -827,7 +827,7 @@ describe('Cooking Log Operations (CRITICAL)', () => {
 
     // Skipped due to extreme Neon serverless eventual consistency lag
     // See docs/troubleshooting/neon_consistency.md
-    it.skip('should reject when not owner', async () => {
+    it('should reject when not owner', async () => {
       const owner = await createAuthenticatedUser(app, 'remowner');
       const hacker = await createAuthenticatedUser(app, 'remhacker');
 
@@ -911,7 +911,7 @@ describe('User Profile Operations (CRITICAL)', () => {
   describe('GET /api/users/:username', () => {
     // Skipped due to extreme Neon serverless eventual consistency lag
     // See docs/troubleshooting/neon_consistency.md
-    it.skip('should return public user data', async () => {
+    it('should return public user data', async () => {
       const { username } = await createAuthenticatedUser(app, 'publicuser');
 
       const response = await request(app)
@@ -935,7 +935,7 @@ describe('User Profile Operations (CRITICAL)', () => {
   describe('GET /api/users/:username/recipes', () => {
     // Skipped due to extreme Neon serverless eventual consistency lag
     // See docs/troubleshooting/neon_consistency.md
-    it.skip('should return user recipes', async () => {
+    it('should return user recipes', async () => {
       const { cookies, username } = await createAuthenticatedUser(app, 'recipeuser');
 
       await request(app)
@@ -987,7 +987,7 @@ describe('User Profile Operations (CRITICAL)', () => {
   describe('PATCH /api/user', () => {
     // Skipped due to extreme Neon serverless eventual consistency lag
     // See docs/troubleshooting/neon_consistency.md
-    it.skip('should update username', async () => {
+    it('should update username', async () => {
       const { cookies } = await createAuthenticatedUser(app, 'oldusername');
 
       // Retry on 500 errors (session/user not fully propagated)
@@ -1072,7 +1072,7 @@ describe('User Profile Operations (CRITICAL)', () => {
 
     // Skipped due to extreme Neon serverless eventual consistency lag
     // See docs/troubleshooting/neon_consistency.md
-    it.skip('should reject incorrect current password', async () => {
+    it('should reject incorrect current password', async () => {
       const { cookies } = await createAuthenticatedUser(app, 'wrongpass');
 
       const response = await request(app)
@@ -1159,7 +1159,7 @@ describe('Security Tests (CRITICAL)', () => {
   describe('XSS Prevention', () => {
     // Skipped due to extreme Neon serverless eventual consistency lag
     // See docs/troubleshooting/neon_consistency.md
-    it.skip('should store XSS attempts without executing', async () => {
+    it('should store XSS attempts without executing', async () => {
       const { cookies } = await createAuthenticatedUser(app, 'xssuser');
 
       const xssPayload = '<script>alert("XSS")</script>';

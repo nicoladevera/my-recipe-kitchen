@@ -98,7 +98,7 @@ export class DatabaseStorage implements IStorage {
     const allRecipes = await query;
     
     // Sort recipes by latest cooking activity, then by creation date
-    return allRecipes.sort((a, b) => {
+    return allRecipes.sort((a: Recipe, b: Recipe) => {
       const aLatestLog = (a.cookingLog && a.cookingLog.length > 0)
         ? new Date(a.cookingLog[0].timestamp).getTime()  // Index 0 is newest (entries added at beginning)
         : new Date(a.createdAt!).getTime();

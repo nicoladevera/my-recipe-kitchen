@@ -38,10 +38,11 @@
 
 ### Database & ORM
 
-- **Database**: PostgreSQL via Neon Serverless (@neondatabase/serverless 0.10.4)
+- **Database**: PostgreSQL via Neon Serverless (@neondatabase/serverless 0.10.4) for production, standard pg for local testing
 - **ORM**: Drizzle ORM 0.39.1 with drizzle-zod 0.7.0
 - **Migrations**: Drizzle Kit 0.30.4
 - **Session Store**: connect-pg-simple 10.0.0 for PostgreSQL-backed sessions
+- **Local Testing**: Docker PostgreSQL 15 for consistent, fast testing
 
 ### Storage
 
@@ -54,7 +55,8 @@
 - **Test UI**: @vitest/ui 4.0.8
 - **Coverage**: @vitest/coverage-v8
 - **API Testing**: Supertest 7.1.4
-- **Test Timeout**: 30 seconds (configured in vitest.config.ts)
+- **Test Database**: Docker PostgreSQL 15 (local) - eliminates Neon eventual consistency issues
+- **Test Timeout**: 10 seconds (configured in vitest.config.ts)
 
 ### Build & Development
 
@@ -240,26 +242,43 @@ npm run check           # Run TypeScript compiler type checking
 ### Database
 
 ```bash
-npm run db:push         # Push Drizzle schema changes to database
+npm run db:push         # Push Drizzle schema changes to Neon database
                         # Uses drizzle-kit to sync schema.ts with database
                         # Requires DATABASE_URL environment variable
+
+npm run db:start        # Start local PostgreSQL container (Docker)
+                        # Runs: docker compose up -d postgres
+
+npm run db:stop         # Stop local PostgreSQL container
+                        # Runs: docker compose down
+
+npm run db:push:local   # Push schema to local PostgreSQL
+                        # For testing against Docker database
 ```
 
 ### Testing
 
+Tests now run against a local PostgreSQL database (Docker) for fast, consistent results.
+
 ```bash
+# First time setup - start Docker PostgreSQL and push schema
+npm run db:start        # Start PostgreSQL container
+npm run db:push:local   # Push schema to local database
+
+# Run tests (uses local PostgreSQL automatically)
 npm test                # Run all tests once
-                        # Runs: NODE_ENV=test vitest run
+                        # Uses local PostgreSQL for instant consistency
 
 npm run test:watch      # Run tests in watch mode
-                        # Runs: NODE_ENV=test vitest
 
 npm run test:ui         # Run tests with Vitest UI
                         # Launches interactive test browser UI
 
 npm run test:coverage   # Run tests with coverage report
-                        # Runs: NODE_ENV=test COVERAGE=true vitest run --coverage
                         # Generates coverage reports in text, JSON, and HTML formats
+
+npm run test:neon       # Run tests against Neon database (legacy)
+                        # Uses DATABASE_URL from environment
 ```
 
 ### Script Details
@@ -270,11 +289,15 @@ npm run test:coverage   # Run tests with coverage report
 | `build` | `vite build && esbuild server/index.ts ...` | Production build (client + server) |
 | `start` | `NODE_ENV=production node dist/index.js` | Run production build |
 | `check` | `tsc` | Type checking without emitting files |
-| `db:push` | `drizzle-kit push` | Sync database schema |
-| `test` | `NODE_ENV=test vitest run` | Run tests once |
-| `test:watch` | `NODE_ENV=test vitest` | Watch mode for development |
-| `test:ui` | `NODE_ENV=test vitest --ui` | Interactive test UI |
-| `test:coverage` | `NODE_ENV=test COVERAGE=true vitest run --coverage` | Generate coverage reports |
+| `db:push` | `drizzle-kit push` | Sync Neon database schema |
+| `db:start` | `docker compose up -d postgres` | Start local PostgreSQL container |
+| `db:stop` | `docker compose down` | Stop local PostgreSQL container |
+| `db:push:local` | `USE_LOCAL_DB=true ... drizzle-kit push` | Sync local PostgreSQL schema |
+| `test` | `USE_LOCAL_DB=true ... vitest run` | Run tests with local PostgreSQL |
+| `test:neon` | `NODE_ENV=test vitest run` | Run tests with Neon (legacy) |
+| `test:watch` | `USE_LOCAL_DB=true ... vitest` | Watch mode for development |
+| `test:ui` | `USE_LOCAL_DB=true ... vitest --ui` | Interactive test UI |
+| `test:coverage` | `USE_LOCAL_DB=true ... vitest run --coverage` | Generate coverage reports |
 
 ---
 
@@ -316,8 +339,8 @@ sequence: {
 
 **Test Environment**:
 - Environment: `NODE_ENV=test`
-- Timeout: 30 seconds per test
-- Database: Separate test database or environment-isolated data
+- Timeout: 10 seconds per test (reduced from 30s with local PostgreSQL)
+- Database: Local Docker PostgreSQL (fast, consistent) or Neon (legacy)
 - Sequential execution to avoid race conditions
 
 ### Writing Tests
@@ -353,16 +376,26 @@ Reports generated: text, JSON, HTML
 
 ### Known Testing Considerations
 
-**Neon Serverless Eventual Consistency**:
-- Some tests may experience "read-after-write" lag due to Neon's serverless architecture
-- Flaky tests related to database latency have been skipped in CI (see recent commits)
+**Local PostgreSQL (Default)**:
+- Tests run against Docker PostgreSQL by default (`npm test`)
+- No eventual consistency issues - instant read-after-write
+- Fast execution (~10-20 seconds for full suite)
+- Requires Docker to be running (`npm run db:start`)
+
+**Neon Serverless (Legacy/Production)**:
+- Use `npm run test:neon` to test against Neon
+- May experience "read-after-write" lag due to serverless architecture
 - Retry logic implemented for foreign key violations
 - See `docs/troubleshooting/neon_consistency.md` for details
 
 ### Running Tests
 
 ```bash
-# Run all tests once
+# First time setup
+npm run db:start         # Start Docker PostgreSQL
+npm run db:push:local    # Push schema to local database
+
+# Run all tests (uses local PostgreSQL)
 npm test
 
 # Watch mode for development
@@ -373,6 +406,9 @@ npm run test:ui
 
 # Generate coverage report
 npm run test:coverage
+
+# Run against Neon (legacy)
+npm run test:neon
 ```
 
 ---
@@ -614,10 +650,12 @@ Feature: Add cooking log modal with star ratings
 **Jobs**:
 
 1. **Test** (`test` job):
+   - ✅ Uses PostgreSQL service container (fast, consistent)
    - ✅ TypeScript type checking (`npm run check`)
+   - ✅ Push schema to local PostgreSQL (`npm run db:push:local`)
    - ✅ Run all tests (`npm test`)
    - ✅ Build application (`npm run build`)
-   - Requires: `DATABASE_URL` and `SESSION_SECRET` secrets
+   - Requires: `DATABASE_URL` secret (for production build only)
 
 2. **Lint** (`lint` job):
    - ✅ TypeScript error checking
@@ -732,10 +770,12 @@ npm run check
 
 ### Common Issues
 
-1. **Tests failing due to database lag**: See `docs/troubleshooting/neon_consistency.md`
-2. **HTTPS redirect in development**: Set `NODE_ENV=development`
-3. **Session issues**: Check `SESSION_SECRET` is set
-4. **Build errors**: Clear `dist/` and rebuild
+1. **Tests failing - Docker not running**: Run `npm run db:start` first
+2. **Tests failing - Schema not pushed**: Run `npm run db:push:local`
+3. **HTTPS redirect in development**: Set `NODE_ENV=development`
+4. **Session issues**: Check `SESSION_SECRET` is set
+5. **Build errors**: Clear `dist/` and rebuild
+6. **Neon eventual consistency**: Use `npm test` (local PostgreSQL) instead of `npm run test:neon`
 
 ---
 

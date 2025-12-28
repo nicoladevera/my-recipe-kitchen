@@ -363,7 +363,7 @@ describe('Recipe Storage Operations (HIGH)', () => {
 
   describe('getRecipes', () => {
     // SKIPPED: Flaky due to Neon serverless eventual consistency (FK violations)
-    it.skip('should return user recipes when userId provided', async () => {
+    it('should return user recipes when userId provided', async () => {
       // Wait for user to propagate
       await waitForPropagation();
 
@@ -397,7 +397,7 @@ describe('Recipe Storage Operations (HIGH)', () => {
 
     // Skipped due to extreme Neon serverless eventual consistency lag
     // See docs/troubleshooting/neon_consistency.md
-    it.skip('should sort by cooking log activity', async () => {
+    it('should sort by cooking log activity', async () => {
       // Wait for user to propagate
       await waitForPropagation();
 
@@ -471,7 +471,7 @@ describe('Recipe Storage Operations (HIGH)', () => {
   describe('updateRecipe', () => {
     // Skipped due to extreme Neon serverless eventual consistency lag
     // See docs/troubleshooting/neon_consistency.md
-    it.skip('should update recipe fields', async () => {
+    it('should update recipe fields', async () => {
       // Wait for user to propagate
       await waitForPropagation();
 
@@ -499,7 +499,7 @@ describe('Recipe Storage Operations (HIGH)', () => {
 
     // Skipped due to extreme Neon serverless eventual consistency lag
     // See docs/troubleshooting/neon_consistency.md
-    it.skip('should verify ownership', async () => {
+    it('should verify ownership', async () => {
       const username = uniqueUsername('otheruser');
       const hashedPassword = await hashPassword('password123');
       const otherUser = await storage.createUser({
@@ -543,7 +543,7 @@ describe('Recipe Storage Operations (HIGH)', () => {
   describe('deleteRecipe', () => {
     // Skipped due to extreme Neon serverless eventual consistency lag
     // See docs/troubleshooting/neon_consistency.md
-    it.skip('should delete recipe when owner', async () => {
+    it('should delete recipe when owner', async () => {
       // Extra wait to ensure user is propagated before creating recipe
       await waitForPropagation();
       
@@ -663,7 +663,7 @@ describe('Recipe Storage Operations (HIGH)', () => {
     });
 
     // SKIPPED: Flaky due to Neon serverless eventual consistency (FK violations)
-    it.skip('should add to beginning of array', async () => {
+    it('should add to beginning of array', async () => {
       const recipe = await storage.createRecipe({
         name: 'Order Recipe',
         heroIngredient: 'Beef',
@@ -826,7 +826,7 @@ describe('Recipe Storage Operations (HIGH)', () => {
 
     // Skipped due to extreme Neon serverless eventual consistency lag
     // See docs/troubleshooting/neon_consistency.md
-    it.skip('should handle invalid index', async () => {
+    it('should handle invalid index', async () => {
       const recipe = await storage.createRecipe({
         name: 'Invalid Index Recipe',
         heroIngredient: 'Chicken',

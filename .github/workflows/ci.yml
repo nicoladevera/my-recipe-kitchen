@@ -11,6 +11,21 @@ jobs:
     name: Run Tests
     runs-on: ubuntu-latest
 
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: myrecipekitchen_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -27,11 +42,18 @@ jobs:
       - name: Run TypeScript type checking
         run: npm run check
 
+      - name: Push database schema
+        run: npm run db:push:local
+        env:
+          USE_LOCAL_DB: 'true'
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/myrecipekitchen_test
+
       - name: Run tests
         run: npm test
         env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
-          SESSION_SECRET: ${{ secrets.SESSION_SECRET }}
+          USE_LOCAL_DB: 'true'
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/myrecipekitchen_test
+          SESSION_SECRET: test-session-secret
           NODE_ENV: test
 
       - name: Build application
