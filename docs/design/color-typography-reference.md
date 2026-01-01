@@ -118,3 +118,4 @@ The app uses a gradient background:
 - **Body Font**: Inter (300, 400, 500, 600)
 - **Heading Font**: Cormorant (400, 500, 600, 700)
 
+
