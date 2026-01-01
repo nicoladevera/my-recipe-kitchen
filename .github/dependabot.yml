@@ -1,0 +1,36 @@
+version: 2
+updates:
+  # Enable npm dependency scanning
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "daily"
+      time: "09:00"
+      timezone: "America/Los_Angeles"
+    # Reduce PR noise by grouping updates
+    groups:
+      development-dependencies:
+        dependency-type: "development"
+        update-types:
+          - "minor"
+          - "patch"
+      production-dependencies:
+        dependency-type: "production"
+        update-types:
+          - "patch"
+    # Auto-label PRs for easy filtering
+    labels:
+      - "dependencies"
+      - "security"
+    # Limit to 5 open PRs at a time to avoid overwhelming the team
+    open-pull-requests-limit: 5
+    # Always prioritize security updates
+    assignees:
+      - "@all-contributors"
+    # Allow Dependabot to rebase PRs
+    rebase-strategy: "auto"
+    # Commit message prefix
+    commit-message:
+      prefix: "deps"
+      prefix-development: "deps-dev"
+      include: "scope"
