@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Cormorant:wght@400;500;600&family=Inter:wght@300;400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Cormorant:wght@400;500;600;700&family=Inter:wght@300;400;500;600&display=swap');
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -97,8 +97,8 @@
 
   .recipe-header h1 {
     font-family: 'Cormorant', serif;
-    font-size: clamp(2.5rem, 5vw, 4rem);
-    font-weight: 500;
+    font-size: clamp(2.75rem, 5vw, 4.25rem);
+    font-weight: 700;
     color: var(--recipe-green);
     margin-bottom: 16px;
     letter-spacing: -0.02em;
@@ -160,8 +160,8 @@
 
   .recipe-section h2 {
     font-family: 'Cormorant', serif;
-    font-size: 2.2rem;
-    font-weight: 500;
+    font-size: 2.4rem;
+    font-weight: 700;
     color: var(--recipe-green);
     margin-bottom: 32px;
     text-align: center;
@@ -279,8 +279,8 @@
 
   .recipe-title {
     font-family: 'Cormorant', serif;
-    font-size: 1.6rem;
-    font-weight: 500;
+    font-size: 1.75rem;
+    font-weight: 600;
     color: var(--recipe-brown);
     margin-bottom: 8px;
     letter-spacing: -0.01em;
@@ -403,10 +403,10 @@
 
   .filter-section h3 {
     font-family: 'Cormorant', serif;
-    font-size: 1.3rem;
+    font-size: 1.4rem;
     color: var(--recipe-green);
     margin-bottom: 20px;
-    font-weight: 500;
+    font-weight: 600;
   }
 
   .photo-upload {

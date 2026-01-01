@@ -9,7 +9,7 @@
 - Fallback: `-apple-system, BlinkMacSystemFont, sans-serif`
 
 **Heading Font:**
-- **Cormorant** - Weights: 400 (Regular), 500 (Medium), 600 (Semi-bold)
+- **Cormorant** - Weights: 400 (Regular), 500 (Medium), 600 (Semi-bold), 700 (Bold)
 
 ### Font Usage
 - Body text: Inter
@@ -116,5 +116,5 @@ The app uses a gradient background:
 
 ### Typography
 - **Body Font**: Inter (300, 400, 500, 600)
-- **Heading Font**: Cormorant (400, 500, 600)
+- **Heading Font**: Cormorant (400, 500, 600, 700)
 
