@@ -9,11 +9,11 @@
 - Fallback: `-apple-system, BlinkMacSystemFont, sans-serif`
 
 **Heading Font:**
-- **Playfair Display** - Weights: 400 (Regular), 500 (Medium), 600 (Semi-bold)
+- **Cormorant** - Weights: 400 (Regular), 500 (Medium), 600 (Semi-bold)
 
 ### Font Usage
 - Body text: Inter
-- Headings (h1, h2, recipe titles): Playfair Display
+- Headings (h1, h2, recipe titles): Cormorant
 - Line height: 1.6 (body text)
 
 ---
@@ -116,5 +116,5 @@ The app uses a gradient background:
 
 ### Typography
 - **Body Font**: Inter (300, 400, 500, 600)
-- **Heading Font**: Playfair Display (400, 500, 600)
+- **Heading Font**: Cormorant (400, 500, 600)
 
