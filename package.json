@@ -129,5 +129,14 @@
   },
   "optionalDependencies": {
     "bufferutil": "^4.0.8"
+  },
+  "overrides": {
+    "qs": ">=6.14.1",
+    "vite": {
+      "esbuild": ">=0.24.3"
+    },
+    "drizzle-kit": {
+      "esbuild": ">=0.24.3"
+    }
   }
 }
