@@ -19,6 +19,7 @@ const apiLimiter = rateLimit({
   standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
   legacyHeaders: false, // Disable the `X-RateLimit-*` headers
   message: { error: "Too many requests, please try again later" },
+  skip: () => process.env.NODE_ENV === 'test', // Skip rate limiting in test environment
 });
 
 // Stricter limiter for sensitive operations (recipe creation, updates, deletes)
@@ -28,6 +29,7 @@ const writeOperationLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: "Too many write operations, please try again later" },
+  skip: () => process.env.NODE_ENV === 'test', // Skip rate limiting in test environment
 });
 
 // Multer upload middleware is imported from object-storage.ts

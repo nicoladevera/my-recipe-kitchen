@@ -19,6 +19,7 @@ const authLimiter = rateLimit({
   legacyHeaders: false,
   message: { error: "Too many authentication attempts, please try again later" },
   skipSuccessfulRequests: true, // Don't count successful logins against the limit
+  skip: () => process.env.NODE_ENV === 'test', // Skip rate limiting in test environment
 });
 
 // CSRF protection middleware for state-changing requests
