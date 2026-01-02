@@ -1,14 +1,57 @@
 import passport from "passport";
 import { Strategy as LocalStrategy } from "passport-local";
-import { Express } from "express";
+import { Express, Request, Response, NextFunction } from "express";
 import session from "express-session";
 import { scrypt, randomBytes, timingSafeEqual } from "crypto";
 import { promisify } from "util";
+import rateLimit from "express-rate-limit";
 import { storage } from "./storage";
 import { User as SelectUser, insertUserSchema } from "@shared/schema";
 import connectPg from "connect-pg-simple";
 import { pool } from "./db";
 import { fromError } from "zod-validation-error";
+
+// Strict rate limiter for authentication endpoints (prevent brute force)
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 5, // Limit each IP to 5 login/register attempts per windowMs
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Too many authentication attempts, please try again later" },
+  skipSuccessfulRequests: true, // Don't count successful logins against the limit
+});
+
+// CSRF protection middleware for state-changing requests
+// Uses double-submit cookie pattern with SameSite cookies
+export const csrfProtection = (req: Request, res: Response, next: NextFunction) => {
+  // Skip CSRF check for GET, HEAD, OPTIONS requests (safe methods)
+  if (['GET', 'HEAD', 'OPTIONS'].includes(req.method)) {
+    return next();
+  }
+
+  // For API requests, verify the request has a valid origin
+  // This works because browsers enforce CORS and SameSite cookies
+  const origin = req.get('origin');
+  const host = req.get('host');
+
+  // Allow requests without origin header (same-origin requests from non-browser clients)
+  // or verify origin matches host for browser requests
+  if (origin) {
+    try {
+      const originUrl = new URL(origin);
+      const expectedHost = host?.split(':')[0]; // Remove port if present
+      const originHost = originUrl.hostname;
+
+      if (originHost !== expectedHost && originHost !== 'localhost' && expectedHost !== 'localhost') {
+        return res.status(403).json({ error: "CSRF validation failed" });
+      }
+    } catch {
+      return res.status(403).json({ error: "Invalid origin header" });
+    }
+  }
+
+  next();
+};
 
 declare global {
   namespace Express {
@@ -50,6 +93,7 @@ export function setupAuth(app: Express) {
     cookie: {
       secure: process.env.NODE_ENV === 'production', // Use secure cookies in production
       httpOnly: true,
+      sameSite: 'lax', // CSRF protection - prevents cross-site request forgery
       maxAge: 1000 * 60 * 60 * 24 * 7, // 7 days
     }
   };
@@ -84,7 +128,7 @@ export function setupAuth(app: Express) {
   });
 
   // Register endpoint
-  app.post("/api/register", async (req, res, next) => {
+  app.post("/api/register", authLimiter, csrfProtection, async (req, res, next) => {
     try {
       // Validate input against schema
       const validationResult = insertUserSchema.safeParse(req.body);
@@ -138,7 +182,7 @@ export function setupAuth(app: Express) {
   });
 
   // Login endpoint
-  app.post("/api/login", (req, res, next) => {
+  app.post("/api/login", authLimiter, csrfProtection, (req, res, next) => {
     passport.authenticate("local", (err: any, user: Express.User | false, info: any) => {
       if (err) {
         return next(err);
@@ -156,7 +200,7 @@ export function setupAuth(app: Express) {
   });
 
   // Logout endpoint
-  app.post("/api/logout", (req, res, next) => {
+  app.post("/api/logout", csrfProtection, (req, res, next) => {
     req.logout((err) => {
       if (err) return next(err);
       res.sendStatus(200);

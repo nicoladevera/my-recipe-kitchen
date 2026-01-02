@@ -3,12 +3,32 @@ import express from "express";
 import { createServer, type Server } from "http";
 import multer from "multer";
 import path from "path";
+import rateLimit from "express-rate-limit";
 import { upload, uploadToMemory, uploadToObjectStorage, deleteFromObjectStorage, isObjectStorageConfigured, serveFromObjectStorage } from "./object-storage";
 import { storage } from "./storage";
 import { insertRecipeSchema } from "@shared/schema";
 import { z } from "zod";
-import { setupAuth } from "./auth";
+import { setupAuth, csrfProtection } from "./auth";
 import { fromError } from "zod-validation-error";
+
+// Rate limiting configuration
+// Standard limiter for general API endpoints
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // Limit each IP to 100 requests per windowMs
+  standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
+  legacyHeaders: false, // Disable the `X-RateLimit-*` headers
+  message: { error: "Too many requests, please try again later" },
+});
+
+// Stricter limiter for sensitive operations (recipe creation, updates, deletes)
+const writeOperationLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 30, // Limit each IP to 30 write operations per windowMs
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Too many write operations, please try again later" },
+});
 
 // Multer upload middleware is imported from object-storage.ts
 
@@ -139,7 +159,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Create new recipe (requires authentication)
-  app.post("/api/recipes", requireAuth, upload.single('photo'), async (req, res) => {
+  app.post("/api/recipes", writeOperationLimiter, csrfProtection, requireAuth, upload.single('photo'), async (req, res) => {
     try {
       // Ensure numbers are properly typed (handles both JSON numbers and form data strings)
       const formData = {
@@ -187,7 +207,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Update recipe (requires ownership)
-  app.patch("/api/recipes/:id", requireRecipeOwnership, upload.single('photo'), async (req, res) => {
+  app.patch("/api/recipes/:id", writeOperationLimiter, csrfProtection, requireRecipeOwnership, upload.single('photo'), async (req, res) => {
     try {
       // Validate input
       const validationResult = insertRecipeSchema.partial().safeParse(req.body);
@@ -231,7 +251,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Delete recipe (requires ownership)
-  app.delete("/api/recipes/:id", requireRecipeOwnership, async (req, res) => {
+  app.delete("/api/recipes/:id", writeOperationLimiter, csrfProtection, requireRecipeOwnership, async (req, res) => {
     try {
       // Get the recipe to check for photo before deletion
       const recipe = await storage.getRecipe(req.params.id);
@@ -254,7 +274,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Add cooking log entry (requires ownership)
-  app.post("/api/recipes/:id/cooking-log", requireRecipeOwnership, upload.single('photo'), async (req, res) => {
+  app.post("/api/recipes/:id/cooking-log", writeOperationLimiter, csrfProtection, requireRecipeOwnership, upload.single('photo'), async (req, res) => {
     try {
       const { date, timestamp, notes, rating } = req.body;
       // Accept either 'timestamp' (new format) or 'date' (legacy format)
@@ -303,7 +323,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Remove cooking log entry (requires ownership)
-  app.delete("/api/recipes/:id/cooking-log/:index", requireRecipeOwnership, async (req, res) => {
+  app.delete("/api/recipes/:id/cooking-log/:index", writeOperationLimiter, csrfProtection, requireRecipeOwnership, async (req, res) => {
     try {
       const logIndex = parseInt(req.params.index, 10);
       if (isNaN(logIndex)) {
@@ -321,7 +341,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // User profile update endpoints
-  app.patch("/api/user", requireAuth, async (req, res) => {
+  app.patch("/api/user", writeOperationLimiter, csrfProtection, requireAuth, async (req, res) => {
     try {
       const updates = z.object({
         username: z.string().min(3).max(50).regex(/^[a-zA-Z0-9_-]+$/).optional(),
@@ -350,7 +370,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch("/api/user/password", requireAuth, async (req, res) => {
+  app.patch("/api/user/password", writeOperationLimiter, csrfProtection, requireAuth, async (req, res) => {
     try {
       const { currentPassword, newPassword } = req.body;
       
